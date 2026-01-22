@@ -131,13 +131,11 @@ class Player {
     }
 
     update() {
-        // Ruch gracza
         this.x += this.velocityX;
         this.y += this.velocityY;
 
-        // Ograniczenie do mapy
-        this.x = Math.max(0, Math.min(this.x, MAP_WIDTH - this.width));
-        this.y = Math.max(0, Math.min(this.y, MAP_HEIGHT - this.height));
+        // Ograniczenie do mapy (gracz zostanie ograniczony przez applyMovementWithCollisions w game.js)
+        // NIE rób tutaj ograniczeń, bo obecnie applyMovementWithCollisions w game.js kontroluje granice
     }
 
     draw(ctx) {
@@ -301,90 +299,240 @@ class NPC {
     }
 
     draw(ctx) {
-        // Realistyczne NPC - handlarz/inżynier
         const centerX = this.x + this.width / 2;
         const centerY = this.y + this.height / 2;
         
-        // Shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY + 12, 10, 4, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Rozróżnienie: Handlarz Uzbrojenia vs zwykły NPC
+        const isMerchant = this.name === "Handlarz Uzbrojenia";
+        
+        if (isMerchant) {
+            // === HANDLARZ UZBROJENIA - luksusowy, bogaty wygląd RPG ===
+            
+            // Cień
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY + 14, 12, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
 
-        // Body (szata handlarza - bardziej kolorowa)
-        const bodyGradient = ctx.createLinearGradient(centerX - 8, centerY - 5, centerX + 8, centerY + 10);
-        bodyGradient.addColorStop(0, '#c04000');
-        bodyGradient.addColorStop(0.5, '#8b3000');
-        bodyGradient.addColorStop(1, '#5c2000');
-        ctx.fillStyle = bodyGradient;
-        ctx.beginPath();
-        ctx.moveTo(centerX - 7, centerY - 2);
-        ctx.lineTo(centerX + 7, centerY - 2);
-        ctx.lineTo(centerX + 8, centerY + 10);
-        ctx.lineTo(centerX - 8, centerY + 10);
-        ctx.closePath();
-        ctx.fill();
+            // Luksusowy płaszcz z futra (szeroki, bogaty)
+            const cloakGrad = ctx.createLinearGradient(centerX - 12, centerY - 6, centerX + 12, centerY + 12);
+            cloakGrad.addColorStop(0, '#8b0000'); // ciemna czerwień
+            cloakGrad.addColorStop(0.5, '#a52a2a');
+            cloakGrad.addColorStop(1, '#6b0000');
+            ctx.fillStyle = cloakGrad;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 11, centerY - 4);
+            ctx.lineTo(centerX + 11, centerY - 4);
+            ctx.lineTo(centerX + 13, centerY + 12);
+            ctx.lineTo(centerX - 13, centerY + 12);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Złote wykończenia płaszcza
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 11, centerY - 4);
+            ctx.lineTo(centerX + 11, centerY - 4);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX - 11, centerY - 4);
+            ctx.lineTo(centerX - 13, centerY + 12);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX + 11, centerY - 4);
+            ctx.lineTo(centerX + 13, centerY + 12);
+            ctx.stroke();
 
-        // Rich belt
-        ctx.fillStyle = '#d4af37';
-        ctx.fillRect(centerX - 9, centerY + 4, 18, 2.5);
+            // Złoty pas z klamrą
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(centerX - 11, centerY + 3, 22, 3);
+            // Klamra pasa (diament)
+            ctx.fillStyle = '#00bfff';
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY + 2.5);
+            ctx.lineTo(centerX + 2.5, centerY + 4.5);
+            ctx.lineTo(centerX, centerY + 6.5);
+            ctx.lineTo(centerX - 2.5, centerY + 4.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 1;
+            ctx.stroke();
 
-        // Head
-        const headGradient = ctx.createRadialGradient(centerX, centerY - 8, 0, centerX, centerY - 8, 5);
-        headGradient.addColorStop(0, '#d4a574');
-        headGradient.addColorStop(1, '#a0743d');
-        ctx.fillStyle = headGradient;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY - 8, 5, 0, Math.PI * 2);
-        ctx.fill();
+            // Głowa (bogatsza karnacja)
+            const headGrad = ctx.createRadialGradient(centerX, centerY - 10, 1, centerX, centerY - 10, 6);
+            headGrad.addColorStop(0, '#f4d0a8');
+            headGrad.addColorStop(1, '#d4a574');
+            ctx.fillStyle = headGrad;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - 10, 6, 0, Math.PI * 2);
+            ctx.fill();
 
-        // Hair
-        ctx.fillStyle = '#8b4513';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY - 10, 6, 0, Math.PI * 2);
-        ctx.fill();
+            // Kapelusz/korona handlarza (złoty z piórami)
+            ctx.fillStyle = '#8b4513';
+            ctx.fillRect(centerX - 7, centerY - 16, 14, 4);
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 5, centerY - 16);
+            ctx.lineTo(centerX, centerY - 20);
+            ctx.lineTo(centerX + 5, centerY - 16);
+            ctx.closePath();
+            ctx.fill();
+            // Pióro
+            ctx.strokeStyle = '#ff4500';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX + 4, centerY - 17);
+            ctx.lineTo(centerX + 7, centerY - 22);
+            ctx.stroke();
 
-        // Eyes
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(centerX - 2.5, centerY - 9, 1.5, 2);
-        ctx.fillRect(centerX + 1, centerY - 9, 1.5, 2);
+            // Oczy (bystre, przebiegłe)
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(centerX - 3, centerY - 11, 2, 2);
+            ctx.fillRect(centerX + 1, centerY - 11, 2, 2);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(centerX - 2.5, centerY - 10.5, 1, 1);
+            ctx.fillRect(centerX + 1.5, centerY - 10.5, 1, 1);
 
-        // Beard
-        ctx.fillStyle = '#654321';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY - 5, 3, 0, Math.PI);
-        ctx.fill();
+            // Wąsy (długie, zakręcone)
+            ctx.strokeStyle = '#654321';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 7);
+            ctx.quadraticCurveTo(centerX - 5, centerY - 6, centerX - 7, centerY - 8);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 7);
+            ctx.quadraticCurveTo(centerX + 5, centerY - 6, centerX + 7, centerY - 8);
+            ctx.stroke();
 
-        // Arms with items
-        ctx.fillStyle = '#c04000';
-        ctx.fillRect(centerX - 10, centerY, 3, 8);
-        ctx.fillRect(centerX + 7, centerY, 3, 8);
+            // Broda (zadbana, krótsza)
+            ctx.fillStyle = '#654321';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - 6, 3.5, 0, Math.PI);
+            ctx.fill();
 
-        // Hands
-        ctx.fillStyle = '#d4a574';
-        ctx.fillRect(centerX - 10, centerY + 8, 3, 2.5);
-        ctx.fillRect(centerX + 7, centerY + 8, 3, 2.5);
+            // Ręce z pierścieniami
+            ctx.fillStyle = '#f4d0a8';
+            ctx.fillRect(centerX - 13, centerY + 1, 3, 9);
+            ctx.fillRect(centerX + 10, centerY + 1, 3, 9);
+            // Złote pierścienie
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(centerX - 12.5, centerY + 7, 2, 1.5);
+            ctx.fillRect(centerX + 10.5, centerY + 7, 2, 1.5);
 
-        // Item in hand (potion bottle)
-        ctx.fillStyle = '#8B008B';
-        ctx.fillRect(centerX + 10, centerY + 5, 2, 4);
-        ctx.fillStyle = '#FF00FF';
-        ctx.fillRect(centerX + 10.5, centerY + 5.5, 1, 2);
+            // Woreczek ze złotem w lewej ręce
+            ctx.fillStyle = '#8b7355';
+            ctx.beginPath();
+            ctx.arc(centerX - 15, centerY + 8, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 8px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('$', centerX - 15, centerY + 10);
 
-        // Quest marker (golden star above head)
-        ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('★', centerX, centerY - 16);
+            // Miecz w prawej ręce (do sprzedaży)
+            ctx.strokeStyle = '#c0c0c0';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(centerX + 15, centerY + 5);
+            ctx.lineTo(centerX + 15, centerY + 12);
+            ctx.stroke();
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(centerX + 13.5, centerY + 4, 3, 2);
 
-        // Selection glow
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.5;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY + 2, 11, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
+            // Blask bogactwa (aura)
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY + 2, 14, 0, Math.PI * 2);
+            ctx.stroke();
+            
+        } else {
+            // === ZWYKŁY NPC - standardowy wygląd ===
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY + 12, 10, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Body (szata handlarza - bardziej kolorowa)
+            const bodyGradient = ctx.createLinearGradient(centerX - 8, centerY - 5, centerX + 8, centerY + 10);
+            bodyGradient.addColorStop(0, '#c04000');
+            bodyGradient.addColorStop(0.5, '#8b3000');
+            bodyGradient.addColorStop(1, '#5c2000');
+            ctx.fillStyle = bodyGradient;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 7, centerY - 2);
+            ctx.lineTo(centerX + 7, centerY - 2);
+            ctx.lineTo(centerX + 8, centerY + 10);
+            ctx.lineTo(centerX - 8, centerY + 10);
+            ctx.closePath();
+            ctx.fill();
+
+            // Rich belt
+            ctx.fillStyle = '#d4af37';
+            ctx.fillRect(centerX - 9, centerY + 4, 18, 2.5);
+
+            // Head
+            const headGradient = ctx.createRadialGradient(centerX, centerY - 8, 0, centerX, centerY - 8, 5);
+            headGradient.addColorStop(0, '#d4a574');
+            headGradient.addColorStop(1, '#a0743d');
+            ctx.fillStyle = headGradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - 8, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Hair
+            ctx.fillStyle = '#8b4513';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - 10, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eyes
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(centerX - 2.5, centerY - 9, 1.5, 2);
+            ctx.fillRect(centerX + 1, centerY - 9, 1.5, 2);
+
+            // Beard
+            ctx.fillStyle = '#654321';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - 5, 3, 0, Math.PI);
+            ctx.fill();
+
+            // Arms with items
+            ctx.fillStyle = '#c04000';
+            ctx.fillRect(centerX - 10, centerY, 3, 8);
+            ctx.fillRect(centerX + 7, centerY, 3, 8);
+
+            // Hands
+            ctx.fillStyle = '#d4a574';
+            ctx.fillRect(centerX - 10, centerY + 8, 3, 2.5);
+            ctx.fillRect(centerX + 7, centerY + 8, 3, 2.5);
+
+            // Item in hand (potion bottle)
+            ctx.fillStyle = '#8B008B';
+            ctx.fillRect(centerX + 10, centerY + 5, 2, 4);
+            ctx.fillStyle = '#FF00FF';
+            ctx.fillRect(centerX + 10.5, centerY + 5.5, 1, 2);
+
+            // Quest marker (golden star above head)
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('★', centerX, centerY - 16);
+
+            // Selection glow
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY + 2, 11, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
     }
 
     getDistance(x, y) {
@@ -1012,6 +1160,7 @@ class Game {
         this.desertPathRocks = [];  // Statyczne skały na ścieżce
         this.cactiDetails = {};     // Wygenerowane detale kaktusów
         this.flowerDetails = {};    // Wygenerowane detale kwiatów
+        this.treeDetails = {};      // Wygenerowane detale drzew (stabilne tekstury)
 
         // Camera system
         this.cameraX = 0;
@@ -1649,6 +1798,47 @@ class Game {
         // Wygeneruj kwiaty
         this.generateFlowers();
 
+        // Budynki wioski (blokady + teleport do wnętrza żółtego domu)
+        this.villageBuildings = this.createVillageBuildings();
+
+        // Konfiguracja małej mapy wnętrza
+        this.interiorMapSize = { width: 900, height: 600 };
+        this.interiorSpawn = {
+            x: this.interiorMapSize.width / 2 - this.player.width / 2,
+            y: this.interiorMapSize.height - 220
+        };
+        const yellowHouse = this.getVillageBuildingByName('yellowHouse');
+        const doorCenterX = yellowHouse ? yellowHouse.doorCenterX : CONFIG.CANVAS_WIDTH / 2;
+        const groundAfterDoor = yellowHouse ? yellowHouse.y + yellowHouse.height + 8 : CONFIG.CANVAS_HEIGHT / 2;
+        this.interiorReturnDest = {
+            x: doorCenterX - this.player.width / 2,
+            y: groundAfterDoor
+        };
+        this.interiorExitZone = {
+            x: this.interiorMapSize.width / 2 - 60,
+            y: this.interiorMapSize.height - 150,
+            width: 120,
+            height: 120
+        };
+
+        // Lada w sklepie (wnętrze żółtego domu) - wąska bariera
+        this.interiorCounter = {
+            x: this.interiorMapSize.width - 220,
+            y: 80,
+            width: 50,
+            height: this.interiorMapSize.height - 240
+        };
+
+        // NPC Handlarz Uzbrojenia za ladą (po prawej stronie lady)
+        this.interiorNPC = new NPC(
+            this.interiorCounter.x + this.interiorCounter.width + 30,
+            this.interiorCounter.y + this.interiorCounter.height / 2 - 15,
+            "Handlarz Uzbrojenia",
+            [],
+            'shop',
+            "Witaj wędrowcze! Mam najlepsze wyposażenie w okolicy!"
+        );
+
         // System dwóch map
         this.currentMap = 1; // 1 = wioska, 2 = miasto
 
@@ -2012,13 +2202,136 @@ class Game {
         if (this.keys['RIGHT']) this.player.velocityX = this.player.speed;
     }
 
+    getCurrentMapBounds() {
+        if (this.currentMap === 3 && this.interiorMapSize) {
+            return { width: this.interiorMapSize.width, height: this.interiorMapSize.height };
+        }
+        return { width: MAP_WIDTH, height: MAP_HEIGHT };
+    }
+
+    getPlayerRect(x = this.player.x, y = this.player.y) {
+        return { x, y, width: this.player.width, height: this.player.height };
+    }
+
+    rectsIntersect(a, b) {
+        if (!a || !b) return false;
+        return (
+            a.x < b.x + b.width &&
+            a.x + a.width > b.x &&
+            a.y < b.y + b.height &&
+            a.y + a.height > b.y
+        );
+    }
+
+    createVillageBuildings() {
+        const doorW = 34;
+        const doorH = 46;
+        const makeHouse = (name, x, y, width, height, allowDoorEntry = false, teleportToInterior = false) => {
+            const doorX = x + width / 2 - doorW / 2;
+            const doorY = y + height - doorH;
+            const doorRect = { x: doorX, y: doorY, width: doorW, height: doorH };
+            return {
+                name,
+                x,
+                y,
+                width,
+                height,
+                doorRect,
+                doorTriggerRect: { x: doorX - 6, y: doorY - 2, width: doorW + 12, height: doorH + 8 },
+                doorCenterX: doorX + doorW / 2,
+                allowDoorEntry,
+                teleportToInterior
+            };
+        };
+
+        return [
+            makeHouse('redHouse', 200, 200, 120, 100),
+            makeHouse('blueHouse', 400, 200, 100, 90),
+            makeHouse('greenHouse', 620, 200, 110, 95),
+            makeHouse('orangeHouse', 220, 400, 130, 110),
+            makeHouse('purpleHouse', 450, 420, 100, 95),
+            makeHouse('yellowHouse', 650, 450, 115, 100, true, true)
+        ];
+    }
+
+    getVillageBuildingByName(name) {
+        if (!this.villageBuildings) return null;
+        return this.villageBuildings.find((b) => b.name === name) || null;
+    }
+
+    collidesWithVillageBuildings(rect) {
+        if (this.currentMap !== 1 || !this.villageBuildings) return false;
+        for (let b of this.villageBuildings) {
+            const insideBuilding = this.rectsIntersect(rect, { x: b.x, y: b.y, width: b.width, height: b.height });
+            if (!insideBuilding) continue;
+
+            const atDoor = b.allowDoorEntry && b.doorRect && this.rectsIntersect(rect, b.doorRect);
+            if (!atDoor) {
+                return true; // blokujemy wejście w bryłę budynku
+            }
+        }
+        return false;
+    }
+
+    applyMovementWithCollisions() {
+        if (!this.player) return;
+        const bounds = this.getCurrentMapBounds();
+        let nextX = this.player.x;
+        let nextY = this.player.y;
+
+        // Najpierw oś X
+        if (this.player.velocityX !== 0) {
+            const candX = nextX + this.player.velocityX;
+            const testRect = this.getPlayerRect(candX, nextY);
+            if (!this.collidesWithVillageBuildings(testRect)) {
+                nextX = candX;
+            }
+        }
+
+        // Następnie oś Y
+        if (this.player.velocityY !== 0) {
+            const candY = nextY + this.player.velocityY;
+            const testRect = this.getPlayerRect(nextX, candY);
+            if (!this.collidesWithVillageBuildings(testRect)) {
+                nextY = candY;
+            }
+        }
+
+        // Ograniczenie do rozmiaru aktualnej mapy
+        nextX = Math.max(0, Math.min(nextX, bounds.width - this.player.width));
+        nextY = Math.max(0, Math.min(nextY, bounds.height - this.player.height));
+
+        this.player.x = nextX;
+        this.player.y = nextY;
+    }
+
+    enterYellowHouseInterior() {
+        const spawnX = this.interiorSpawn ? this.interiorSpawn.x : CONFIG.CANVAS_WIDTH / 2;
+        const spawnY = this.interiorSpawn ? this.interiorSpawn.y : CONFIG.CANVAS_HEIGHT / 2;
+        this.currentMap = 3;
+        this.player.x = spawnX;
+        this.player.y = spawnY;
+        this.player.velocityX = 0;
+        this.player.velocityY = 0;
+    }
+
+    exitYellowHouseInterior() {
+        const destX = this.interiorReturnDest ? this.interiorReturnDest.x : CONFIG.CANVAS_WIDTH / 2;
+        const destY = this.interiorReturnDest ? this.interiorReturnDest.y : CONFIG.CANVAS_HEIGHT / 2;
+        this.currentMap = 1;
+        this.player.x = destX;
+        this.player.y = destY;
+        this.player.velocityX = 0;
+        this.player.velocityY = 0;
+    }
+
     // ============================================
     // LOGIKA GRY
     // ============================================
 
     update() {
         this.updatePlayerMovement();
-        this.player.update();
+        this.applyMovementWithCollisions();
         this.updateCamera();
         
         // Update wszystkich wrogów
@@ -2065,6 +2378,19 @@ class Game {
                 this.player.y = this.returnTeleportZone.destY;
             }
         }
+
+        // Sprawdź teleport do wnętrza żółtego domu
+        if (this.currentMap === 1 && this.villageBuildings) {
+            const yellow = this.getVillageBuildingByName('yellowHouse');
+            if (yellow && yellow.doorTriggerRect && this.rectsIntersect(this.getPlayerRect(), yellow.doorTriggerRect)) {
+                this.enterYellowHouseInterior();
+            }
+        }
+
+        // Sprawdź teleport wyjścia z wnętrza
+        if (this.currentMap === 3 && this.interiorExitZone && this.rectsIntersect(this.getPlayerRect(), this.interiorExitZone)) {
+            this.exitYellowHouseInterior();
+        }
         
         // Update walki w czasie rzeczywistym
         if (this.battle) {
@@ -2091,8 +2417,9 @@ class Game {
         this.cameraY += (targetCameraY - this.cameraY) * this.cameraSmooth;
 
         // Ograniczenia kamery (aby nie wychodzić poza mapę)
-        this.cameraX = Math.max(0, Math.min(this.cameraX, MAP_WIDTH - CONFIG.CANVAS_WIDTH));
-        this.cameraY = Math.max(0, Math.min(this.cameraY, MAP_HEIGHT - CONFIG.CANVAS_HEIGHT));
+        const bounds = this.getCurrentMapBounds();
+        this.cameraX = Math.max(0, Math.min(this.cameraX, bounds.width - CONFIG.CANVAS_WIDTH));
+        this.cameraY = Math.max(0, Math.min(this.cameraY, bounds.height - CONFIG.CANVAS_HEIGHT));
     }
 
     checkCollisions() {
@@ -2569,21 +2896,40 @@ class Game {
         } else if (this.currentMap === 2) {
             // MAPA 2: WIELKIE MIASTO
             this.drawBigCity();
+        } else if (this.currentMap === 3) {
+            // MAPA 3: WNĘTRZE ŻÓŁTEGO DOMU
+            this.drawYellowHouseInterior();
         }
         // ---
 
-        // Siatka (opcjonalnie)
-        this.drawGrid();
+        // Siatka debug wyłączona
 
-        // Rysuj NPC
-        for (let npc of this.npcs) {
-            npc.draw(this.ctx);
-            this.drawNPCQuestMarker(npc);
+        // Rysuj NPC (tylko na mapach 1 i 2, nie w wnętrzach)
+        if (this.currentMap !== 3) {
+            for (let npc of this.npcs) {
+                npc.draw(this.ctx);
+                this.drawNPCQuestMarker(npc);
+            }
         }
 
-        // Rysuj wrogów
-        for (let enemy of this.enemies) {
-            enemy.draw(this.ctx);
+        // Rysuj NPC Handlarza we wnętrzu (mapa 3)
+        if (this.currentMap === 3 && this.interiorNPC) {
+            this.interiorNPC.draw(this.ctx);
+            // Rysuj nazwę nad NPC
+            this.ctx.fillStyle = '#d4af37';
+            this.ctx.font = 'bold 10px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.shadowColor = '#000';
+            this.ctx.shadowBlur = 2;
+            this.ctx.fillText(this.interiorNPC.name, this.interiorNPC.x + this.interiorNPC.width / 2, this.interiorNPC.y - 10);
+            this.ctx.shadowColor = 'transparent';
+        }
+
+        // Rysuj wrogów (tylko na mapach 1 i 2, nie w wnętrzach)
+        if (this.currentMap !== 3) {
+            for (let enemy of this.enemies) {
+                enemy.draw(this.ctx);
+            }
         }
 
         // Rysuj gracza
@@ -2594,6 +2940,8 @@ class Game {
             this.drawTeleportPortal();
         } else if (this.currentMap === 2) {
             this.drawReturnTeleportPortal();
+        } else if (this.currentMap === 3) {
+            this.drawYellowHouseExit();
         }
 
         // Przywróć stan kontekstu (usuń transformację)
@@ -2607,14 +2955,25 @@ class Game {
     }
 
     drawMapGrass() {
-        // Tło trawy
-        this.ctx.fillStyle = '#2d5016';
+        // Pikselowa baza trawy
+        this.ctx.fillStyle = '#2f6b3a';
         this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
 
-        // Rysuj zapisany wzór trawy
+        // Nałożona ziarnista tekstura (precomputed pattern)
         for (let tile of this.mapGrassPattern) {
-            this.ctx.fillStyle = tile.color;
-            this.ctx.fillRect(tile.x, tile.y, tile.size, tile.size);
+            if (tile.type === 'dot') {
+                this.ctx.fillStyle = tile.color;
+                this.ctx.fillRect(tile.x, tile.y, tile.size, tile.size);
+            } else if (tile.type === 'tuft') {
+                this.ctx.strokeStyle = tile.color;
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.moveTo(tile.x, tile.y);
+                this.ctx.lineTo(tile.x, tile.y - tile.h);
+                this.ctx.moveTo(tile.x + 2, tile.y + 1);
+                this.ctx.lineTo(tile.x + 2 + tile.tilt, tile.y - tile.h + 2);
+                this.ctx.stroke();
+            }
         }
 
         // Drogi z piasku
@@ -2623,19 +2982,33 @@ class Game {
 
     generateGrassPattern() {
         const pattern = [];
-        // Generuj wzór trawy raz, na stałych pozycjach
-        for (let x = 0; x < MAP_WIDTH; x += 30) {
-            for (let y = 0; y < MAP_HEIGHT; y += 30) {
-                // Seed random na podstawie pozycji
+        const rand = (seed) => Math.abs(Math.sin(seed) * 43758.5453123) % 1;
+        // Drobne piksele i kępki źdźbeł, pozycje deterministyczne
+        for (let x = 0; x < MAP_WIDTH; x += 10) {
+            for (let y = 0; y < MAP_HEIGHT; y += 10) {
                 const seed = (x * 73856093) ^ (y * 19349663);
-                const random = Math.abs(Math.sin(seed) * 10000) % 1;
-                
-                if (random > 0.3) {
+                const r = rand(seed);
+
+                if (r > 0.35) {
+                    const colorDots = ['#2a6234', '#2c7039', '#245b2e'];
                     pattern.push({
-                        x: x + (seed % 30),
-                        y: y + ((seed >> 8) % 30),
-                        size: Math.floor((seed % 20) + 5),
-                        color: ['#3d6b1f', '#2d5016', '#4a7c1d', '#2b4d14'][Math.floor((seed % 4))]
+                        type: 'dot',
+                        x: x + Math.floor(rand(seed + 1) * 9),
+                        y: y + Math.floor(rand(seed + 2) * 9),
+                        size: 2,
+                        color: colorDots[Math.floor(rand(seed + 3) * colorDots.length)]
+                    });
+                }
+
+                if (r > 0.7) {
+                    const colorTuft = ['#3e8b4a', '#3a7e45'];
+                    pattern.push({
+                        type: 'tuft',
+                        x: x + 2 + Math.floor(rand(seed + 4) * 6),
+                        y: y + 9,
+                        h: 6 + Math.floor(rand(seed + 5) * 6),
+                        tilt: Math.floor((rand(seed + 6) - 0.5) * 4),
+                        color: colorTuft[Math.floor(rand(seed + 7) * colorTuft.length)]
                     });
                 }
             }
@@ -2663,8 +3036,8 @@ class Game {
         this.minimapCtx.fillStyle = '#000';
         this.minimapCtx.fillRect(0, 0, 150, 150);
 
-        // Skala (mapa 4000x4000 -> minimap 150x150)
-        const scale = 150 / MAP_WIDTH;
+        const bounds = this.getCurrentMapBounds();
+        const scale = 150 / bounds.width;
 
         // Rysuj mapę
         this.minimapCtx.fillStyle = '#2d5016';
@@ -3025,7 +3398,11 @@ class Game {
             this.drawTeleportPortal();
 
             // Rysuj drzewa
+            const villageBounds = { x1: 120, y1: 120, x2: 900, y2: 820 };
             for (let tree of this.trees) {
+                if (tree.x >= villageBounds.x1 && tree.x <= villageBounds.x2 && tree.y >= villageBounds.y1 && tree.y <= villageBounds.y2) {
+                    continue; // omijaj drzewa w obrębie wioski, by nie nachodziły na budynki
+                }
                 this.drawLargeTree(tree.x, tree.y);
             }
 
@@ -3082,51 +3459,185 @@ class Game {
     }
 
     drawHouse(x, y, width, height, wallColor, roofColor) {
-        // Ściany
-        this.ctx.fillStyle = wallColor;
-        this.ctx.fillRect(x, y, width, height);
-        this.ctx.strokeStyle = '#000';
+        // Styl mocniej RPG: kamienna podmurówka, drewniane belki, dach z głębią i witrażowe okna.
+        const baseWall = wallColor || '#d7c9a4';
+        const wallShadow = '#9a8c6a';
+        const wallLight = '#efe4c5';
+        const roofBase = roofColor || '#b86a32';
+        const roofShadow = '#7a4420';
+        const timber = '#6b4528';
+        const mortar = '#4b4335';
+
+        // Deterministyczny rand (stabilny szum)
+        const seedBase = (Math.floor(x) * 83492791) ^ (Math.floor(y) * 19349663);
+        const rand = (o) => Math.abs(Math.sin(seedBase + o) * 43758.5453123) % 1;
+
+        // Podmurówka kamienna
+        const foundationH = Math.max(12, Math.floor(height * 0.18));
+        this.ctx.fillStyle = '#8a7c68';
+        this.ctx.fillRect(x, y + height - foundationH, width, foundationH);
+        this.ctx.strokeStyle = '#44382a';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y + height - foundationH, width, foundationH);
+        this.ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        for (let i = 0; i < 6; i++) {
+            const rx = x + Math.floor(rand(i * 7) * width * 0.9);
+            const rw = 14 + Math.floor(rand(i * 7 + 1) * 22);
+            const ry = y + height - foundationH + 4 + Math.floor(rand(i * 7 + 2) * (foundationH - 8));
+            this.ctx.strokeRect(rx, ry, rw, 6);
+        }
+
+        // Cień pod budynkiem
+        this.ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        this.ctx.fillRect(x + 6, y + height - 6, width + 8, 8);
+
+        // Ściana główna z gradientem
+        const g = this.ctx.createLinearGradient(x, y, x, y + height - foundationH);
+        g.addColorStop(0, wallLight);
+        g.addColorStop(1, baseWall);
+        this.ctx.fillStyle = g;
+        this.ctx.fillRect(x, y, width, height - foundationH);
+
+        // Lewy cień, prawy highlight
+        const shadeW = Math.max(8, Math.floor(width * 0.1));
+        this.ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        this.ctx.fillRect(x, y, shadeW, height - foundationH);
+        this.ctx.fillStyle = 'rgba(255,255,255,0.09)';
+        this.ctx.fillRect(x + width - shadeW, y, shadeW, height - foundationH);
+
+        // Plamki tynku
+        this.ctx.fillStyle = 'rgba(0,0,0,0.07)';
+        for (let i = 0; i < 90; i++) {
+            const px = x + Math.floor(rand(i * 5) * width);
+            const py = y + Math.floor(rand(i * 5 + 1) * (height - foundationH));
+            this.ctx.fillRect(px, py, 2, 2);
+        }
+        this.ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        for (let i = 0; i < 60; i++) {
+            const px = x + Math.floor(rand(300 + i * 3) * width);
+            const py = y + Math.floor(rand(500 + i * 3) * (height - foundationH));
+            this.ctx.fillRect(px, py, 2, 2);
+        }
+
+        // Belki drewniane (poziome i pionowe)
+        this.ctx.strokeStyle = timber;
+        this.ctx.lineWidth = 5;
+        // poziome
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y + 24);
+        this.ctx.lineTo(x + width, y + 24);
+        this.ctx.moveTo(x, y + height - foundationH - 4);
+        this.ctx.lineTo(x + width, y + height - foundationH - 4);
+        this.ctx.stroke();
+        // pionowe
+        this.ctx.beginPath();
+        const columns = 3;
+        for (let i = 0; i <= columns; i++) {
+            const cx = x + (i / columns) * width;
+            this.ctx.moveTo(cx, y);
+            this.ctx.lineTo(cx, y + height - foundationH - 2);
+        }
+        this.ctx.stroke();
+
+        // Obramowanie ścian
+        this.ctx.strokeStyle = '#2b1a12';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(x, y, width, height);
 
-        // Dach (trójkąt)
-        this.ctx.fillStyle = roofColor;
+        // Dach głęboki z cieniowaniem
+        this.ctx.fillStyle = roofBase;
+        this.ctx.strokeStyle = 'rgba(0,0,0,0)';
+        this.ctx.lineWidth = 2;
         this.ctx.beginPath();
-        this.ctx.moveTo(x - 10, y);
-        this.ctx.lineTo(x + width / 2, y - 40);
-        this.ctx.lineTo(x + width + 10, y);
+        this.ctx.moveTo(x - 14, y + 6);
+        this.ctx.lineTo(x + width / 2, y - 46);
+        this.ctx.lineTo(x + width + 14, y + 6);
         this.ctx.closePath();
         this.ctx.fill();
+
+        // Cień pod okapem
+        this.ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        this.ctx.beginPath();
+        this.ctx.moveTo(x - 14, y + 6);
+        this.ctx.lineTo(x + width + 14, y + 6);
+        this.ctx.lineTo(x + width + 14, y + 12);
+        this.ctx.lineTo(x - 14, y + 12);
+        this.ctx.closePath();
+        this.ctx.fill();
+
+        // Dachówka: gładki gradient bez linii
+        const roofGrad = this.ctx.createLinearGradient(x, y - 46, x, y + 8);
+        roofGrad.addColorStop(0, this.darkenColor(roofBase, 0.08));
+        roofGrad.addColorStop(1, roofBase);
+        this.ctx.fillStyle = roofGrad;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x - 14, y + 6);
+        this.ctx.lineTo(x + width / 2, y - 46);
+        this.ctx.lineTo(x + width + 14, y + 6);
+        this.ctx.closePath();
+        this.ctx.fill();
+
+        // Kalnica pominięta, żeby dach był gładki
+
+        // Drzwi z łukiem
+        const doorW = 34;
+        const doorH = 46;
+        const doorX = x + width / 2 - doorW / 2;
+        const doorY = y + height - doorH;
+        const doorGrad = this.ctx.createLinearGradient(doorX, doorY, doorX + doorW, doorY + doorH);
+        doorGrad.addColorStop(0, '#7d542b');
+        doorGrad.addColorStop(1, '#5a3b1e');
+        this.ctx.fillStyle = doorGrad;
+        this.ctx.fillRect(doorX, doorY, doorW, doorH);
+        // łuk
+        this.ctx.beginPath();
+        this.ctx.moveTo(doorX, doorY + 12);
+        this.ctx.quadraticCurveTo(doorX + doorW / 2, doorY - 6, doorX + doorW, doorY + 12);
+        this.ctx.lineTo(doorX + doorW, doorY + doorH);
+        this.ctx.lineTo(doorX, doorY + doorH);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#2b1a12';
+        this.ctx.lineWidth = 2;
         this.ctx.stroke();
-
-        // Drzwi
-        this.ctx.fillStyle = '#654321';
-        this.ctx.fillRect(x + width / 2 - 15, y + height - 40, 30, 40);
-        this.ctx.strokeRect(x + width / 2 - 15, y + height - 40, 30, 40);
-
-        // Okna
-        this.ctx.fillStyle = '#87ceeb';
-        this.ctx.fillRect(x + 15, y + 20, 25, 25);
-        this.ctx.strokeRect(x + 15, y + 20, 25, 25);
-        this.ctx.fillRect(x + width - 40, y + 20, 25, 25);
-        this.ctx.strokeRect(x + width - 40, y + 20, 25, 25);
-
-        // Ramki okien
-        this.ctx.strokeStyle = '#000';
+        // pionowe deski
+        this.ctx.strokeStyle = 'rgba(0,0,0,0.3)';
         this.ctx.lineWidth = 1;
         this.ctx.beginPath();
-        this.ctx.moveTo(x + 27.5, y + 20);
-        this.ctx.lineTo(x + 27.5, y + 45);
-        this.ctx.moveTo(x + 15, y + 32.5);
-        this.ctx.lineTo(x + 40, y + 32.5);
+        this.ctx.moveTo(doorX + doorW / 3, doorY + 4);
+        this.ctx.lineTo(doorX + doorW / 3, doorY + doorH);
+        this.ctx.moveTo(doorX + (2 * doorW) / 3, doorY + 4);
+        this.ctx.lineTo(doorX + (2 * doorW) / 3, doorY + doorH);
         this.ctx.stroke();
+        this.ctx.fillStyle = '#d9c27a';
+        this.ctx.fillRect(doorX + doorW - 11, doorY + doorH / 2 - 2, 4, 4);
 
-        this.ctx.beginPath();
-        this.ctx.moveTo(x + width - 27.5, y + 20);
-        this.ctx.lineTo(x + width - 27.5, y + 45);
-        this.ctx.moveTo(x + width - 40, y + 32.5);
-        this.ctx.lineTo(x + width - 15, y + 32.5);
-        this.ctx.stroke();
+        // Okna z witrażowym światłem
+        const winW = 26;
+        const winH = 30;
+        const winY = y + 18;
+        const leftWinX = x + 14;
+        const rightWinX = x + width - winW - 14;
+        const drawWindow = (wx) => {
+            const glass = this.ctx.createLinearGradient(wx, winY, wx + winW, winY + winH);
+            glass.addColorStop(0, '#ffeec2');
+            glass.addColorStop(1, '#ffcc73');
+            this.ctx.fillStyle = glass;
+            this.ctx.fillRect(wx, winY, winW, winH);
+            this.ctx.strokeStyle = '#2b1a12';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(wx, winY, winW, winH);
+            this.ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.moveTo(wx + winW / 2, winY);
+            this.ctx.lineTo(wx + winW / 2, winY + winH);
+            this.ctx.moveTo(wx, winY + winH / 2);
+            this.ctx.lineTo(wx + winW, winY + winH / 2);
+            this.ctx.stroke();
+        };
+        drawWindow(leftWinX);
+        drawWindow(rightWinX);
     }
 
     drawWell(x, y) {
@@ -3390,6 +3901,101 @@ class Game {
         this.ctx.fillText('DO WIOSKI', x, y - 120);
     }
 
+    drawYellowHouseInterior() {
+        // Tło: podłoga z drewna w drewnianej chacie
+        const woodBase = '#8b6f47';
+        const woodLight = '#a88b5f';
+        const woodDark = '#6e5a3a';
+
+        this.ctx.fillStyle = woodBase;
+        this.ctx.fillRect(0, 0, this.interiorMapSize.width, this.interiorMapSize.height);
+
+        // Deski pionowe
+        const boardWidth = 40;
+        for (let x = 0; x < this.interiorMapSize.width; x += boardWidth) {
+            const shade = x % (boardWidth * 3) === 0 ? woodLight : woodDark;
+            this.ctx.fillStyle = shade;
+            this.ctx.fillRect(x, 0, boardWidth - 2, this.interiorMapSize.height);
+        }
+
+        // Smugi i szczeliny między deskami
+        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        this.ctx.lineWidth = 2;
+        for (let x = 0; x < this.interiorMapSize.width; x += boardWidth) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x + boardWidth - 2, 0);
+            this.ctx.lineTo(x + boardWidth - 2, this.interiorMapSize.height);
+            this.ctx.stroke();
+        }
+
+        // Krawędzie planszy (ściany – ciemniejszy obszar, aby różnicować od podłogi)
+        this.ctx.fillStyle = 'rgba(40, 30, 20, 0.5)';
+        this.ctx.fillRect(0, 0, this.interiorMapSize.width, 20); // ściana górna
+        this.ctx.fillRect(0, 0, 20, this.interiorMapSize.height); // ściana lewa
+        this.ctx.fillRect(this.interiorMapSize.width - 20, 0, 20, this.interiorMapSize.height); // ściana prawa
+        this.ctx.fillRect(0, this.interiorMapSize.height - 20, this.interiorMapSize.width, 20); // ściana dolna
+
+        // Rysuj wąską ladę (bariera między graczem a handlarzem)
+        if (this.interiorCounter) {
+            const c = this.interiorCounter;
+            
+            // Blat lady (ciemny brąz)
+            this.ctx.fillStyle = '#654321';
+            this.ctx.fillRect(c.x, c.y, c.width, c.height);
+            
+            // Cień/głębia
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            this.ctx.fillRect(c.x, c.y, c.width, 15);
+            
+            // Pionowe deski lady
+            this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+            this.ctx.lineWidth = 2;
+            for (let i = 0; i <= 8; i++) {
+                const lineY = c.y + (i * c.height / 8);
+                this.ctx.beginPath();
+                this.ctx.moveTo(c.x, lineY);
+                this.ctx.lineTo(c.x + c.width, lineY);
+                this.ctx.stroke();
+            }
+            
+            // Obramowanie lady
+            this.ctx.strokeStyle = '#3d2812';
+            this.ctx.lineWidth = 4;
+            this.ctx.strokeRect(c.x, c.y, c.width, c.height);
+            
+            // Górna krawędź lady (jasniejsza, szersza dla efektu blatu)
+            this.ctx.fillStyle = '#8b6f47';
+            this.ctx.fillRect(c.x - 5, c.y, c.width + 10, 12);
+            this.ctx.strokeStyle = '#3d2812';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(c.x - 5, c.y, c.width + 10, 12);
+        }
+    }
+
+    drawYellowHouseExit() {
+        // Wizualizacja strefy wyjścia jako podświetlony prostokąt lub drzwi
+        if (!this.interiorExitZone) return;
+        const z = this.interiorExitZone;
+        const centerX = z.x + z.width / 2;
+        const centerY = z.y + z.height / 2;
+
+        // Podświetlony obszar
+        const grad = this.ctx.createRadialGradient(centerX, centerY, 10, centerX, centerY, z.width / 2);
+        grad.addColorStop(0, 'rgba(255, 255, 100, 0.7)');
+        grad.addColorStop(1, 'rgba(255, 255, 100, 0)');
+        this.ctx.fillStyle = grad;
+        this.ctx.fillRect(z.x, z.y, z.width, z.height);
+
+        // Znak "WYJŚCIE"
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeText('WYJŚCIE', centerX, centerY - 10);
+        this.ctx.fillText('WYJŚCIE', centerX, centerY - 10);
+    }
+
     drawBigCity() {
         // Duże miasto fantasy (mapa 2) - PEŁNA MAPA!
         
@@ -3475,18 +4081,55 @@ class Game {
     }
 
     drawTreeCity(x, y) {
-        // Drzewo w mieście
-        this.ctx.fillStyle = '#654321';
-        this.ctx.fillRect(x - 5, y, 10, 30);
-        
-        this.ctx.fillStyle = '#228b22';
+        // Pikselowa, kompaktowa wersja drzewka miejskiego
+        const key = `citytree_${Math.round(x)}_${Math.round(y)}`;
+        if (!this.treeDetails[key]) {
+            const seedBase = (Math.floor(x) * 92821) ^ (Math.floor(y) * 68917);
+            const rand = (o) => Math.abs(Math.sin(seedBase + o) * 127.53125) % 1;
+            const palettes = [
+                { top: '#3aa45a', mid: '#2d8b4b', dark: '#1f6233', outline: '#0f301a', sparkle: '#6ad68c' },
+                { top: '#4fb072', mid: '#3b955f', dark: '#2c6c45', outline: '#103624', sparkle: '#7de0a0' }
+            ];
+            this.treeDetails[key] = palettes[Math.floor(rand(5) * palettes.length)];
+        }
+        const p = this.treeDetails[key];
+
+        // Cień
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
         this.ctx.beginPath();
-        this.ctx.arc(x, y - 15, 20, 0, Math.PI * 2);
+        this.ctx.ellipse(x, y + 24, 24, 7, 0, 0, Math.PI * 2);
         this.ctx.fill();
-        
-        this.ctx.strokeStyle = '#1a5a1a';
+
+        // Pień
+        this.ctx.fillStyle = '#7b5234';
+        this.ctx.strokeStyle = '#2b1a12';
         this.ctx.lineWidth = 2;
+        this.ctx.fillRect(x - 5, y, 10, 24);
+        this.ctx.strokeRect(x - 5, y, 10, 24);
+
+        // Korona
+        this.ctx.fillStyle = p.dark;
+        this.ctx.strokeStyle = p.outline;
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y - 12, 18, 0, Math.PI * 2);
+        this.ctx.fill();
         this.ctx.stroke();
+
+        this.ctx.fillStyle = p.mid;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y - 12, 15, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        this.ctx.fillStyle = p.top;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y - 12, 12, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        this.ctx.fillStyle = p.sparkle;
+        for (let i = 0; i < 8; i++) {
+            this.ctx.fillRect(x - 8 + (i % 4) * 4, y - 18 + Math.floor(i / 4) * 5, 2, 2);
+        }
     }
 
     drawLantern(x, y) {
@@ -3891,80 +4534,99 @@ class Game {
     }
 
     drawLargeTree(x, y) {
-        // Duże drzewo - realistyczne
-        // Cień
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        // Pikselowo-cieniowane drzewo w stylu ref
+        const key = `tree_${Math.round(x)}_${Math.round(y)}`;
+        if (!this.treeDetails[key]) {
+            const seedBase = (Math.floor(x) * 73856093) ^ (Math.floor(y) * 19349663);
+            const rand = (o) => Math.abs(Math.sin(seedBase + o) * 43758.5453123) % 1;
+            const palettes = [
+                { top: '#3aa45a', mid: '#2d8b4b', dark: '#1f6233', outline: '#0f301a', sparkle: '#6ad68c' },
+                { top: '#4fb072', mid: '#3b955f', dark: '#2c6c45', outline: '#103624', sparkle: '#7de0a0' },
+                { top: '#3e9a60', mid: '#2f8350', dark: '#245f3a', outline: '#0f2f1b', sparkle: '#62c987' }
+            ];
+            this.treeDetails[key] = {
+                palette: palettes[Math.floor(rand(5) * palettes.length)],
+                trunkShade: rand(10),
+                leafDither: rand(20)
+            };
+        }
+
+        const p = this.treeDetails[key].palette;
+        const trunkH = 44;
+        const trunkW = 14;
+
+        // Cień elipsa
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
         this.ctx.beginPath();
-        this.ctx.ellipse(x, y + 60, 50, 15, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(x, y + trunkH * 0.9, 34, 10, 0, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Pień (trunk) - bardziej realistyczny
-        const trunkGradient = this.ctx.createLinearGradient(x - 8, y - 10, x + 8, y + 50);
-        trunkGradient.addColorStop(0, '#6d4c41');
-        trunkGradient.addColorStop(0.5, '#4e342e');
-        trunkGradient.addColorStop(1, '#3e2723');
-        this.ctx.fillStyle = trunkGradient;
-        this.ctx.fillRect(x - 8, y, 16, 55);
+        // Pień z ciemnym outline
+        this.ctx.fillStyle = '#7b5234';
+        this.ctx.strokeStyle = '#2b1a12';
+        this.ctx.lineWidth = 2;
+        this.ctx.fillRect(x - trunkW / 2, y, trunkW, trunkH);
+        this.ctx.strokeRect(x - trunkW / 2, y, trunkW, trunkH);
 
-        // Cień na pniu
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.fillRect(x + 2, y, 4, 55);
-
-        // Bark texture
-        for (let i = 0; i < 8; i++) {
-            this.ctx.strokeStyle = `rgba(0, 0, 0, ${0.1 + Math.random() * 0.1})`;
-            this.ctx.lineWidth = 1;
+        // Przecinające się segmenty kory
+        this.ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        for (let i = 0; i < 6; i++) {
+            const yLine = y + 6 + i * 6;
             this.ctx.beginPath();
-            this.ctx.moveTo(x - 8, y + i * 7);
-            this.ctx.lineTo(x + 8, y + i * 7);
+            this.ctx.moveTo(x - trunkW / 2 + 2, yLine);
+            this.ctx.lineTo(x + trunkW / 2 - 2, yLine);
             this.ctx.stroke();
         }
 
-        // Liście - 4 poziomy (bardziej realistyczne)
-        const foliageLevels = [
-            { radius: 55, offsetY: -35, color1: '#2d5016', color2: '#1b3a0d', color3: '#0f1f07' },
-            { radius: 45, offsetY: -15, color1: '#3d6b1f', color2: '#2d5016', color3: '#1b3a0d' },
-            { radius: 35, offsetY: 5, color1: '#4d8228', color2: '#3d6b1f', color3: '#2d5016' },
-            { radius: 25, offsetY: 20, color1: '#5d9632', color2: '#4d8228', color3: '#3d6b1f' }
+        // Korona: trzy koncentryczne placki z outline i ditherem
+        const layers = [
+            { r: 34, color: p.dark },
+            { r: 30, color: p.mid },
+            { r: 24, color: p.top }
         ];
 
-        for (let foliage of foliageLevels) {
-            // Główne liście
-            const gradient = this.ctx.createRadialGradient(x, y + foliage.offsetY, foliage.radius * 0.3, x, y + foliage.offsetY, foliage.radius);
-            gradient.addColorStop(0, foliage.color1);
-            gradient.addColorStop(0.6, foliage.color2);
-            gradient.addColorStop(1, foliage.color3);
-            
-            this.ctx.fillStyle = gradient;
-            this.ctx.beginPath();
-            this.ctx.arc(x, y + foliage.offsetY, foliage.radius, 0, Math.PI * 2);
-            this.ctx.fill();
+        // Outline korony
+        this.ctx.fillStyle = p.dark;
+        this.ctx.strokeStyle = p.outline;
+        this.ctx.lineWidth = 3;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y - 18, layers[0].r, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.stroke();
 
-            // Cień wewnętrzny
-            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        // Środkowe warstwy
+        for (let i = 1; i < layers.length; i++) {
+            this.ctx.fillStyle = layers[i].color;
             this.ctx.beginPath();
-            this.ctx.arc(x - foliage.radius * 0.3, y + foliage.offsetY + foliage.radius * 0.2, foliage.radius * 0.5, 0, Math.PI * 2);
-            this.ctx.fill();
-
-            // Highlight (światło)
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-            this.ctx.beginPath();
-            this.ctx.arc(x - foliage.radius * 0.4, y + foliage.offsetY - foliage.radius * 0.3, foliage.radius * 0.4, 0, Math.PI * 2);
+            this.ctx.arc(x, y - 18, layers[i].r, 0, Math.PI * 2);
             this.ctx.fill();
         }
 
-        // Roots (korzenie)
-        this.ctx.strokeStyle = '#5d4037';
-        this.ctx.lineWidth = 1.5;
-        for (let i = 0; i < 3; i++) {
-            const angle = (i / 3) * Math.PI * 2;
-            const rootX = x + Math.cos(angle) * 12;
-            const rootY = y + 55;
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, y + 55);
-            this.ctx.quadraticCurveTo(rootX + 5, rootY + 8, rootX + 3, rootY + 15);
-            this.ctx.stroke();
+        // Drobne piksele połysku i cienia dla tekstury
+        this.ctx.fillStyle = p.sparkle;
+        for (let i = 0; i < 14; i++) {
+            const ang = (i / 14) * Math.PI * 2;
+            const rx = x + Math.cos(ang) * (12 + (i % 3));
+            const ry = y - 18 + Math.sin(ang) * (12 + (i % 4));
+            this.ctx.fillRect(rx, ry, 2, 2);
         }
+
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+        for (let i = 0; i < 10; i++) {
+            const rx = x - 10 + (i % 5) * 5;
+            const ry = y - 8 + Math.floor(i / 5) * 6;
+            this.ctx.fillRect(rx, ry, 2, 2);
+        }
+
+        // Korzenie
+        this.ctx.strokeStyle = '#4a2f21';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x - 4, y + trunkH);
+        this.ctx.lineTo(x - 10, y + trunkH + 8);
+        this.ctx.moveTo(x + 4, y + trunkH);
+        this.ctx.lineTo(x + 10, y + trunkH + 8);
+        this.ctx.stroke();
     }
 
     drawForest(x, y) {
