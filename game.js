@@ -272,14 +272,14 @@ class Player {
 }
 
 class Quest {
-    constructor(id, name, description, requiredLevel, expReward, goldReward, mobName, mobCount, rewardItem = null) {
+    constructor(id, name, description, requiredLevel, expReward, goldReward, mobType, mobCount, rewardItem = null) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.requiredLevel = requiredLevel;
         this.expReward = expReward;
         this.goldReward = goldReward;
-        this.mobName = mobName;
+        this.mobType = mobType; // 'boar', 'wolf', 'bear', 'whelp', 'wasp', 'snake'
         this.mobCount = mobCount;
         this.rewardItem = rewardItem; // Item to drop
         this.completed = false;
@@ -395,23 +395,54 @@ class NPC {
 }
 
 class Enemy {
-    constructor(x, y, name) {
+    constructor(x, y, name, type = 'boar') {
         this.x = x;
         this.y = y;
         this.width = CONFIG.ENEMY_SIZE;
         this.height = CONFIG.ENEMY_SIZE;
         this.name = name;
-        this.maxHp = 50;
-        this.hp = 50;
-        this.damage = 8;
-        this.defense = 2;
+        this.type = type; // 'boar', 'wolf', 'bear', 'whelp', 'wasp', 'snake'
+        this.difficulty = 'easy'; // 'easy', 'medium', 'hard' - domyślnie łatwy
         this.isAggro = false;
-        this.aggroRange = 150;
         this.isAlive = true;
         this.respawnTimer = 0;
         this.respawnTime = 10; // 10 sekund
         this.spawnX = x;
         this.spawnY = y;
+        this.questId = null; // Misja powiązana z tym potworem
+        
+        // Statystyki zależne od typu
+        this.initStats();
+    }
+    
+    initStats() {
+        // Statystyki bazowe dla każdego typu
+        const baseStats = {
+            'boar': { maxHp: 40, damage: 6, defense: 1, range: 120 },
+            'wolf': { maxHp: 45, damage: 8, defense: 2, range: 140 },
+            'bear': { maxHp: 80, damage: 12, defense: 4, range: 130 },
+            'whelp': { maxHp: 25, damage: 4, defense: 1, range: 100 },
+            'wasp': { maxHp: 20, damage: 5, defense: 0, range: 180 },
+            'snake': { maxHp: 35, damage: 7, defense: 1, range: 110 }
+        };
+        
+        const baseStat = baseStats[this.type] || baseStats['boar'];
+        let multiplier = 1;
+        
+        // Skaluj statystyki wg trudności
+        if (this.difficulty === 'easy') {
+            multiplier = 0.8; // Łatwe potwory: -20% HP, DMG
+        } else if (this.difficulty === 'medium') {
+            multiplier = 1.2; // Średnie: +20% HP, DMG
+        } else if (this.difficulty === 'hard') {
+            multiplier = 1.6; // Trudne: +60% HP, DMG
+        }
+        
+        this.maxHp = Math.floor(baseStat.maxHp * multiplier);
+        this.hp = this.maxHp;
+        this.damage = Math.floor(baseStat.damage * multiplier);
+        this.defense = baseStat.defense;
+        this.aggroRange = baseStat.range;
     }
 
     update(playerX, playerY) {
@@ -435,7 +466,6 @@ class Enemy {
     draw(ctx) {
         const centerX = this.x + this.width / 2;
         const centerY = this.y + this.height / 2;
-        const race = this.race || 'Human';
         
         // Jeśli nie żywy - pokaż timer respawnu
         if (!this.isAlive) {
@@ -455,142 +485,28 @@ class Enemy {
         ctx.ellipse(centerX, centerY + 14, 14, 5, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        if (race === 'Human') {
-            // Dzik (Wild Boar) - for humans
-            const bodyGradient = ctx.createLinearGradient(centerX - 12, centerY - 2, centerX + 12, centerY + 12);
-            bodyGradient.addColorStop(0, '#4a3728');
-            bodyGradient.addColorStop(0.5, '#2a1f18');
-            bodyGradient.addColorStop(1, '#1a0f08');
-            ctx.fillStyle = bodyGradient;
-            ctx.beginPath();
-            ctx.ellipse(centerX, centerY + 4, 13, 11, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Bristles (włosie na plecach)
-            ctx.strokeStyle = '#3a2f28';
-            ctx.lineWidth = 2;
-            for (let i = -10; i <= 10; i += 3) {
-                ctx.beginPath();
-                ctx.moveTo(centerX + i, centerY - 5);
-                ctx.lineTo(centerX + i - 1, centerY - 9);
-                ctx.stroke();
-            }
-
-            // Head (czaszka zwierzęcia)
-            const headGradient = ctx.createLinearGradient(centerX - 10, centerY - 5, centerX + 5, centerY + 5);
-            headGradient.addColorStop(0, '#5a4738');
-            headGradient.addColorStop(1, '#2a1f18');
-            ctx.fillStyle = headGradient;
-            ctx.beginPath();
-            ctx.ellipse(centerX - 6, centerY + 2, 8, 6, 0.2, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Snout (ryjek)
-            ctx.fillStyle = '#3a2f28';
-            ctx.beginPath();
-            ctx.ellipse(centerX - 13, centerY + 4, 4, 3, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Nostrils
-            ctx.fillStyle = '#000';
-            ctx.fillRect(centerX - 14.5, centerY + 2.5, 1.5, 1);
-            ctx.fillRect(centerX - 14.5, centerY + 4.5, 1.5, 1);
-
-            // Eyes (szalone oczy)
-            const eyeColor = this.isAggro ? '#FF0000' : '#FFAA00';
-            ctx.fillStyle = eyeColor;
-            ctx.fillRect(centerX - 10, centerY - 1, 2.5, 2.5);
-            ctx.fillRect(centerX - 4, centerY - 1, 2.5, 2.5);
-
-            // Pupils
-            ctx.fillStyle = '#000';
-            ctx.fillRect(centerX - 9.5, centerY - 0.5, 1.5, 1.5);
-            ctx.fillRect(centerX - 3.5, centerY - 0.5, 1.5, 1.5);
-
-            // Tusks (kły)
-            ctx.strokeStyle = '#E8D5C4';
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.moveTo(centerX - 13, centerY + 6);
-            ctx.quadraticCurveTo(centerX - 15, centerY + 9, centerX - 14, centerY + 12);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(centerX - 13, centerY + 8);
-            ctx.quadraticCurveTo(centerX - 15.5, centerY + 11, centerX - 14.5, centerY + 14);
-            ctx.stroke();
-
-            // Legs (nogi)
-            ctx.fillStyle = '#1a0f08';
-            ctx.fillRect(centerX - 9, centerY + 14, 3, 5);
-            ctx.fillRect(centerX - 3, centerY + 14, 3, 5);
-            ctx.fillRect(centerX + 3, centerY + 14, 3, 5);
-            ctx.fillRect(centerX + 9, centerY + 14, 3, 5);
-        } else {
-            // Trole (Trolls) - for orcs - large blue creatures
-            const bodyGradient = ctx.createLinearGradient(centerX - 12, centerY - 2, centerX + 12, centerY + 12);
-            bodyGradient.addColorStop(0, '#3a5a7a');
-            bodyGradient.addColorStop(0.5, '#1a3a5a');
-            bodyGradient.addColorStop(1, '#0a1a3a');
-            ctx.fillStyle = bodyGradient;
-            ctx.beginPath();
-            ctx.ellipse(centerX, centerY + 4, 14, 13, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Spikes on back
-            ctx.fillStyle = '#5a7a9a';
-            for (let i = -8; i <= 8; i += 4) {
-                ctx.beginPath();
-                ctx.moveTo(centerX + i, centerY - 8);
-                ctx.lineTo(centerX + i - 2, centerY - 13);
-                ctx.lineTo(centerX + i + 2, centerY - 13);
-                ctx.closePath();
-                ctx.fill();
-            }
-
-            // Head
-            const headGradient = ctx.createLinearGradient(centerX - 8, centerY - 6, centerX + 8, centerY + 2);
-            headGradient.addColorStop(0, '#4a6a8a');
-            headGradient.addColorStop(1, '#1a3a5a');
-            ctx.fillStyle = headGradient;
-            ctx.beginPath();
-            ctx.ellipse(centerX, centerY - 8, 9, 7, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Horns
-            ctx.strokeStyle = '#8a8a8a';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(centerX - 6, centerY - 12);
-            ctx.lineTo(centerX - 8, centerY - 16);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(centerX + 6, centerY - 12);
-            ctx.lineTo(centerX + 8, centerY - 16);
-            ctx.stroke();
-
-            // Eyes (red and angry)
-            const eyeColor = this.isAggro ? '#FF3333' : '#FF6666';
-            ctx.fillStyle = eyeColor;
-            ctx.fillRect(centerX - 7, centerY - 9, 2.5, 2.5);
-            ctx.fillRect(centerX + 4.5, centerY - 9, 2.5, 2.5);
-
-            // Pupils
-            ctx.fillStyle = '#000';
-            ctx.fillRect(centerX - 6.5, centerY - 8.5, 1.5, 1.5);
-            ctx.fillRect(centerX + 5, centerY - 8.5, 1.5, 1.5);
-
-            // Mouth
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY - 4, 3, 0, Math.PI);
-            ctx.stroke();
-
-            // Legs (nogi)
-            ctx.fillStyle = '#0a1a3a';
-            ctx.fillRect(centerX - 10, centerY + 14, 5, 6);
-            ctx.fillRect(centerX + 5, centerY + 14, 5, 6);
+        // Rysuj odpowiedni typ potwora
+        switch(this.type) {
+            case 'boar':
+                this.drawBoar(ctx, centerX, centerY);
+                break;
+            case 'wolf':
+                this.drawWolf(ctx, centerX, centerY);
+                break;
+            case 'bear':
+                this.drawBear(ctx, centerX, centerY);
+                break;
+            case 'whelp':
+                this.drawWhelp(ctx, centerX, centerY);
+                break;
+            case 'wasp':
+                this.drawWasp(ctx, centerX, centerY);
+                break;
+            case 'snake':
+                this.drawSnake(ctx, centerX, centerY);
+                break;
+            default:
+                this.drawBoar(ctx, centerX, centerY);
         }
 
         // Aggro ring
@@ -619,6 +535,320 @@ class Enemy {
         ctx.shadowBlur = 3;
         ctx.fillText(this.name, centerX, centerY - 15);
         ctx.shadowColor = 'transparent';
+    }
+
+    drawBoar(ctx, centerX, centerY) {
+        // Dzik (Wild Boar)
+        const bodyGradient = ctx.createLinearGradient(centerX - 12, centerY - 2, centerX + 12, centerY + 12);
+        bodyGradient.addColorStop(0, '#4a3728');
+        bodyGradient.addColorStop(0.5, '#2a1f18');
+        bodyGradient.addColorStop(1, '#1a0f08');
+        ctx.fillStyle = bodyGradient;
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY + 4, 13, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bristles
+        ctx.strokeStyle = '#3a2f28';
+        ctx.lineWidth = 2;
+        for (let i = -10; i <= 10; i += 3) {
+            ctx.beginPath();
+            ctx.moveTo(centerX + i, centerY - 5);
+            ctx.lineTo(centerX + i - 1, centerY - 9);
+            ctx.stroke();
+        }
+
+        // Head
+        const headGradient = ctx.createLinearGradient(centerX - 10, centerY - 5, centerX + 5, centerY + 5);
+        headGradient.addColorStop(0, '#5a4738');
+        headGradient.addColorStop(1, '#2a1f18');
+        ctx.fillStyle = headGradient;
+        ctx.beginPath();
+        ctx.ellipse(centerX - 6, centerY + 2, 8, 6, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes
+        const eyeColor = this.isAggro ? '#FF0000' : '#FFAA00';
+        ctx.fillStyle = eyeColor;
+        ctx.fillRect(centerX - 10, centerY - 1, 2.5, 2.5);
+        ctx.fillRect(centerX - 4, centerY - 1, 2.5, 2.5);
+
+        // Legs
+        ctx.fillStyle = '#1a0f08';
+        ctx.fillRect(centerX - 9, centerY + 14, 3, 5);
+        ctx.fillRect(centerX - 3, centerY + 14, 3, 5);
+        ctx.fillRect(centerX + 3, centerY + 14, 3, 5);
+        ctx.fillRect(centerX + 9, centerY + 14, 3, 5);
+    }
+
+    drawWolf(ctx, centerX, centerY) {
+        // Wilk - szary, smukły
+        const bodyGradient = ctx.createLinearGradient(centerX - 14, centerY - 1, centerX + 8, centerY + 10);
+        bodyGradient.addColorStop(0, '#5a6a7a');
+        bodyGradient.addColorStop(0.5, '#3a4a5a');
+        bodyGradient.addColorStop(1, '#2a3a4a');
+        ctx.fillStyle = bodyGradient;
+        ctx.beginPath();
+        ctx.ellipse(centerX - 2, centerY + 2, 14, 10, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head (ostrzejsze niż dzik)
+        ctx.fillStyle = '#4a5a6a';
+        ctx.beginPath();
+        ctx.ellipse(centerX - 10, centerY - 2, 8, 7, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ears
+        ctx.fillStyle = '#3a4a5a';
+        ctx.beginPath();
+        ctx.moveTo(centerX - 14, centerY - 5);
+        ctx.lineTo(centerX - 16, centerY - 12);
+        ctx.lineTo(centerX - 12, centerY - 6);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(centerX - 8, centerY - 6);
+        ctx.lineTo(centerX - 6, centerY - 13);
+        ctx.lineTo(centerX - 4, centerY - 6);
+        ctx.closePath();
+        ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = this.isAggro ? '#FF4444' : '#FFBB00';
+        ctx.fillRect(centerX - 11, centerY - 3, 2, 2);
+        ctx.fillRect(centerX - 5, centerY - 3, 2, 2);
+
+        // Teeth
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(centerX - 11, centerY + 2);
+        ctx.lineTo(centerX - 11, centerY + 4);
+        ctx.moveTo(centerX - 9, centerY + 2);
+        ctx.lineTo(centerX - 9, centerY + 4);
+        ctx.stroke();
+
+        // Legs
+        ctx.fillStyle = '#2a3a4a';
+        ctx.fillRect(centerX - 10, centerY + 12, 2.5, 5);
+        ctx.fillRect(centerX - 4, centerY + 12, 2.5, 5);
+        ctx.fillRect(centerX + 2, centerY + 12, 2.5, 5);
+        ctx.fillRect(centerX + 8, centerY + 12, 2.5, 5);
+
+        // Tail
+        ctx.strokeStyle = '#3a4a5a';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(centerX + 10, centerY + 3);
+        ctx.quadraticCurveTo(centerX + 15, centerY, centerX + 14, centerY - 8);
+        ctx.stroke();
+    }
+
+    drawBear(ctx, centerX, centerY) {
+        // Niedźwiedź - duży, brązowy
+        const bodyGradient = ctx.createLinearGradient(centerX - 14, centerY - 3, centerX + 12, centerY + 14);
+        bodyGradient.addColorStop(0, '#6b4423');
+        bodyGradient.addColorStop(0.5, '#4a2f1a');
+        bodyGradient.addColorStop(1, '#2a1a0a');
+        ctx.fillStyle = bodyGradient;
+        ctx.beginPath();
+        ctx.ellipse(centerX + 1, centerY + 5, 15, 13, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head (duża)
+        ctx.fillStyle = '#5a3a1a';
+        ctx.beginPath();
+        ctx.ellipse(centerX - 8, centerY, 10, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ears
+        ctx.fillStyle = '#3a2a0a';
+        ctx.beginPath();
+        ctx.arc(centerX - 14, centerY - 7, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(centerX - 2, centerY - 8, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes (małe i groźne)
+        ctx.fillStyle = this.isAggro ? '#FF2222' : '#FFAA00';
+        ctx.fillRect(centerX - 11, centerY - 1, 1.5, 1.5);
+        ctx.fillRect(centerX - 3, centerY - 1, 1.5, 1.5);
+
+        // Snout
+        ctx.fillStyle = '#4a2a0a';
+        ctx.beginPath();
+        ctx.ellipse(centerX - 11, centerY + 2, 3, 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Claws
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 4; i++) {
+            const x = centerX - 10 + i * 4;
+            ctx.beginPath();
+            ctx.moveTo(x, centerY + 18);
+            ctx.lineTo(x, centerY + 21);
+            ctx.stroke();
+        }
+
+        // Legs (grube)
+        ctx.fillStyle = '#2a1a0a';
+        ctx.fillRect(centerX - 11, centerY + 15, 4, 6);
+        ctx.fillRect(centerX - 3, centerY + 15, 4, 6);
+        ctx.fillRect(centerX + 5, centerY + 15, 4, 6);
+        ctx.fillRect(centerX + 13, centerY + 15, 4, 6);
+    }
+
+    drawWhelp(ctx, centerX, centerY) {
+        // Małe szczenię - młody wilk
+        const bodyGradient = ctx.createLinearGradient(centerX - 10, centerY - 1, centerX + 6, centerY + 8);
+        bodyGradient.addColorStop(0, '#6a7a8a');
+        bodyGradient.addColorStop(1, '#3a4a5a');
+        ctx.fillStyle = bodyGradient;
+        ctx.beginPath();
+        ctx.ellipse(centerX - 1, centerY + 1, 10, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head (małe)
+        ctx.fillStyle = '#5a6a7a';
+        ctx.beginPath();
+        ctx.ellipse(centerX - 7, centerY - 2, 6, 5, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Small ears
+        ctx.fillStyle = '#4a5a6a';
+        ctx.beginPath();
+        ctx.arc(centerX - 10, centerY - 5, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes (wielkie jak u szczeniąt)
+        ctx.fillStyle = this.isAggro ? '#FF5555' : '#FFCC00';
+        ctx.fillRect(centerX - 8, centerY - 3, 1.5, 1.5);
+        ctx.fillRect(centerX - 4, centerY - 3, 1.5, 1.5);
+
+        // Legs (cienkie)
+        ctx.fillStyle = '#3a4a5a';
+        ctx.fillRect(centerX - 8, centerY + 8, 2, 4);
+        ctx.fillRect(centerX - 2, centerY + 8, 2, 4);
+        ctx.fillRect(centerX + 4, centerY + 8, 2, 4);
+    }
+
+    drawWasp(ctx, centerX, centerY) {
+        // Osa - latająca, żółto-czarna
+        // Abdomen
+        ctx.fillStyle = '#FFD700';
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.ellipse(centerX - 1 + i * 1.5, centerY + 2, 4, 6 - i * 1.5, 0, 0, Math.PI * 2);
+            if (i % 2 === 0) ctx.fillStyle = '#FFD700';
+            else ctx.fillStyle = '#000';
+            ctx.fill();
+        }
+
+        // Thorax (środek ciała)
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.ellipse(centerX - 2, centerY - 3, 4, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head (mały)
+        ctx.fillStyle = '#1a1a1a';
+        ctx.beginPath();
+        ctx.arc(centerX - 2, centerY - 9, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes (duże)
+        ctx.fillStyle = this.isAggro ? '#FF3333' : '#00FF00';
+        ctx.beginPath();
+        ctx.arc(centerX - 3.5, centerY - 8.5, 1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(centerX - 0.5, centerY - 8.5, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sting
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(centerX - 1, centerY + 9);
+        ctx.lineTo(centerX - 1, centerY + 13);
+        ctx.stroke();
+
+        // Wings
+        ctx.strokeStyle = 'rgba(200, 220, 255, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(centerX - 6, centerY - 2, 3, 4, 0.3, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(centerX + 2, centerY - 2, 3, 4, -0.3, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Legs
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(centerX - 2 - i * 1.5, centerY);
+            ctx.lineTo(centerX - 4 - i * 2, centerY + 3);
+            ctx.stroke();
+        }
+    }
+
+    drawSnake(ctx, centerX, centerY) {
+        // Wąż - wężowy kształt
+        // Body (przede wszystkim)
+        ctx.strokeStyle = '#2a6b2a';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(centerX + 10, centerY - 2);
+        ctx.quadraticCurveTo(centerX + 5, centerY - 8, centerX - 2, centerY - 5);
+        ctx.quadraticCurveTo(centerX - 8, centerY - 2, centerX - 10, centerY + 5);
+        ctx.stroke();
+
+        // Pattern na ciele (prążki)
+        ctx.strokeStyle = '#1a4a1a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX + 8, centerY - 3);
+        ctx.quadraticCurveTo(centerX + 4, centerY - 7, centerX - 2, centerY - 6);
+        ctx.stroke();
+
+        // Head (trójkątny)
+        ctx.fillStyle = '#2a7a2a';
+        ctx.beginPath();
+        ctx.moveTo(centerX - 10, centerY + 2);
+        ctx.lineTo(centerX - 12, centerY + 6);
+        ctx.lineTo(centerX - 8, centerY + 6);
+        ctx.closePath();
+        ctx.fill();
+
+        // Eyes (żółte)
+        ctx.fillStyle = this.isAggro ? '#FF4444' : '#FFDD00';
+        ctx.beginPath();
+        ctx.arc(centerX - 11, centerY + 3, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Tongue
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(centerX - 10, centerY + 5);
+        ctx.lineTo(centerX - 13, centerY + 7);
+        ctx.moveTo(centerX - 10, centerY + 5);
+        ctx.lineTo(centerX - 7, centerY + 7);
+        ctx.stroke();
+
+        // Tail (zwijany)
+        ctx.strokeStyle = '#2a6b2a';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(centerX + 10, centerY - 2);
+        ctx.quadraticCurveTo(centerX + 14, centerY + 2, centerX + 12, centerY + 8);
+        ctx.stroke();
     }
 
     drawHPBar(ctx) {
@@ -769,7 +999,8 @@ class Game {
         this.gameRunning = false;
         this.player = null;
         this.npcs = [];
-        this.enemy = null;
+        this.enemies = []; // Lista wrogów
+        this.currentEnemy = null; // Aktualny wróg w walce
         this.keys = {};
         this.battle = null;
         this.trees = [];
@@ -1391,49 +1622,80 @@ class Game {
         // Utwórz misje (race-specific)
         this.initQuests();
 
-        // Utwórz NPC z misjami (różne w zależności od rasy)
+        // Utwórz 3 NPC z różnymi misjami
         const race = this.selectedChar ? this.selectedChar.race || 'Human' : 'Human';
         if (race === 'Human') {
+            // Ludzie: Kravis (misje 0-2), Mira (misje 3-5), Olaf (misje 6-9)
             this.npcs = [
-                new NPC(200, 150, "Kravis Żelazny", [0, 1, 2], 'quest', "Witaj wojowniku! Mam dla ciebie ważne misje!"),
-                new NPC(CONFIG.CANVAS_WIDTH - 230, CONFIG.CANVAS_HEIGHT - 180, "Mira Handlarka", [], 'vendor', "Witaj przybyszu! Czy chcesz coś kupić?"),
-                new NPC(350, 450, "Olaf Łowca", [], 'quest', "Hej, przyjacielu! Mam parę zadań dla ciebie!")
+                new NPC(300, 300, "Kravis Żelazny", [0, 1, 2], 'quest', "Witaj wojowniku! Mam dla ciebie misje dla młodych!"),
+                new NPC(500, 350, "Mira Handlarka", [3, 4, 5], 'quest', "Cześć przyjacielu! Mam dla ciebie interesujące zadania!"),
+                new NPC(400, 500, "Olaf Łowca", [6, 7, 8, 9], 'quest', "Aha! Silny wyglądzisz. Mam dla ciebie niebezpieczne misje!")
             ];
-            this.enemy = new Enemy(800, 200, "Dzik");
         } else {
-            // Orki - inne NPC
+            // Orki: Grok (misje 0-2), Urga (misje 3-5), Drog (misje 6-9)
             this.npcs = [
-                new NPC(200, 150, "Grok Zwycięzca", [0, 1, 2], 'quest', "Witaj, młody wojowniku! Mam dla ciebie zadania!"),
-                new NPC(CONFIG.CANVAS_WIDTH - 230, CONFIG.CANVAS_HEIGHT - 180, "Urga Szamanka", [], 'vendor', "Witaj, podróżniku! Mam ciekawe rzeczy do sprzedania!"),
-                new NPC(350, 450, "Drog Myśliwy", [], 'quest', "Cześć! Masz chwilę dla mnie?")
+                new NPC(300, 300, "Grok Zwycięzca", [0, 1, 2], 'quest', "Witaj, młody wojowniku! Zacznij od tych zadań!"),
+                new NPC(500, 350, "Urga Szamanka", [3, 4, 5], 'quest', "Magia i bestie czekają! Czy jesteś gotów?"),
+                new NPC(400, 500, "Drog Myśliwy", [6, 7, 8, 9], 'quest', "Wielkie bestie czekają na mocnych wojowników!")
             ];
-            this.enemy = new Enemy(800, 200, "Trole");
-            this.enemy.race = 'Orc';
         }
+
+        // Generuj 25 potworów na całej mapie
+        this.generateEnemies();
 
         // Wygeneruj drzewa
         this.generateTrees();
 
         // Wygeneruj kwiaty
         this.generateFlowers();
+
+        // System dwóch map
+        this.currentMap = 1; // 1 = wioska, 2 = miasto
+
+        // Teleport na prawym brzegu mapy (do mapy 2)
+        this.teleportZone = {
+            x: MAP_WIDTH - 150,
+            y: MAP_HEIGHT / 2 - 100,
+            width: 100,
+            height: 200,
+            toMap: 2,
+            destX: 300,
+            destY: 400,
+            active: true
+        };
+
+        // Teleport powrotny na mapie 2 (lewy brzeg)
+        this.returnTeleportZone = {
+            x: 50,
+            y: MAP_HEIGHT / 2 - 100,
+            width: 100,
+            height: 200,
+            toMap: 1,
+            destX: MAP_WIDTH - 300,
+            destY: MAP_HEIGHT / 2,
+            active: true
+        };
     }
 
     initQuests() {
-        const race = this.selectedChar ? this.selectedChar.race || 'Human' : 'Human';
-        if (race === 'Human') {
-            this.quests = [
-                new Quest(0, "Pierwsze potwory", "Zbierz 3x Mięso Dzika", 1, 10, 15, "Dzik", 3, new Item("Mięso Dzika", "🥩", "drop", 0)),
-                new Quest(1, "Szkoła myślistwa", "Polowanie treningowe - zabij 2 Dzików", 1, 20, 25, "Dzik", 2, null),
-                new Quest(2, "Prawdziwy Dzik", "Zabij prawdziwego dzika (50% szansy przy każdym zabójstwie)", 1, 60, 80, "Dzik", 1, null)
-            ];
-        } else {
-            // Orc quests - trolls instead
-            this.quests = [
-                new Quest(0, "Zbieranie Tropów", "Zbierz 3x Pazury Trola", 1, 15, 20, "Trole", 3, new Item("Pazury Trola", "💚", "drop", 0)),
-                new Quest(1, "Trening Walki", "Walka treningowa - zabij 2 Troli", 1, 25, 30, "Trole", 2, null),
-                new Quest(2, "Wódz Trollów", "Zabij Wodza Trollów (50% szansy)", 1, 80, 100, "Trole", 1, null)
-            ];
-        }
+        // 10 misji dla każdego poziomu 1-10 z skalowanymi nagrodami
+        this.quests = [
+            // LEVEL 1-3 (ŁATWO - wokół obozu)
+            new Quest(0, "Małe Dziki", "Zbierz 3x Mięso Dzika", 1, 60, 40, "whelp", 3, new Item("Mięso Dzika", "🥩", "drop", 0)),
+            new Quest(1, "Łowy Wilczków", "Zabij 4 Wilczków", 2, 85, 65, "whelp", 4, new Item("Pazury Wilczka", "🐾", "drop", 1)),
+            new Quest(2, "Polowanie na Dziki", "Zabij 5 Dzików", 3, 120, 100, "boar", 5, new Item("Mięso Dzika", "🥩", "drop", 2)),
+            
+            // LEVEL 4-6 (ŚREDNIO - środek mapy)
+            new Quest(3, "Węże Leśne", "Zbierz 4x Jad Węża", 4, 160, 140, "snake", 4, new Item("Jad Węża", "☠", "drop", 3)),
+            new Quest(4, "Polowanie na Wilki", "Zabij 5 Wilków", 5, 200, 180, "wolf", 5, new Item("Futro Wilka", "🐺", "drop", 4)),
+            new Quest(5, "Osadnictwo Os", "Zabij 6 Os", 6, 240, 220, "wasp", 6, new Item("Żądło Osy", "⚔", "drop", 5)),
+            
+            // LEVEL 7-10 (TRUDNO - koniec mapy)
+            new Quest(6, "Polowanie na Niedźwiedzie", "Zabij 3 Niedźwiedzie", 7, 320, 300, "bear", 3, new Item("Szapa Niedźwiedzia", "🐾", "drop", 6)),
+            new Quest(7, "Wielkie Polowanie", "Zabij 5 Wilków i 3 Niedźwiedzie", 8, 400, 380, "wolf", 5, new Item("Futro Wspaniałe", "👑", "drop", 7)),
+            new Quest(8, "Mistrz Zwierołowu", "Zabij 10 różnych stworzeń", 9, 500, 450, "boar", 10, new Item("Medal Myśliwego", "🏅", "drop", 8)),
+            new Quest(9, "Zagrożenie Lasu", "Zabij wszystkie groźne bestie (5 Niedźwiedzi, 10 Wilków)", 10, 700, 600, "bear", 15, new Item("Klucz Skarbu", "🔑", "drop", 9))
+        ];
     }
 
     saveGameState() {
@@ -1497,6 +1759,81 @@ class Game {
                 }
                 return null;
             }).filter(q => q !== null);
+        }
+    }
+
+    generateEnemies() {
+        // Generuj 25 potworów na całej mapie z podziałem na strefy trudności
+        this.enemies = [];
+        const enemyNames = {
+            'boar': ['Dzik', 'Dzik Leśny', 'Śnieżny Dzik'],
+            'wolf': ['Wilk', 'Wilk Szary', 'Wilk Alfa'],
+            'bear': ['Niedźwiedź', 'Niedźwiedź Brunatny', 'Niedźwiedź Górski'],
+            'whelp': ['Wilczek', 'Małe Szczenię', 'Szczenię Wilka'],
+            'wasp': ['Osa', 'Osa Gigantyczna', 'Osa Warjatka'],
+            'snake': ['Wąż', 'Wąż Żmija', 'Wąż Wędrujący']
+        };
+        
+        // STREFA 1: OBÓZ (łatwa) - misje 1-3 (poziomy 1-3)
+        // Pozycja gracza zwykle ok 2000x2000, obóz w okolicy ~1500-2500
+        const campX = 1800, campY = 1800;
+        const campRadius = 600; // Promień około obozu
+        
+        // Dziki i Wilki dla początkujących
+        const easyTypes = ['boar', 'whelp', 'wolf'];
+        for (let i = 0; i < 8; i++) {
+            const type = easyTypes[i % easyTypes.length];
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * campRadius;
+            const x = campX + Math.cos(angle) * distance;
+            const y = campY + Math.sin(angle) * distance;
+            
+            const typeNames = enemyNames[type];
+            const name = typeNames[Math.floor(Math.random() * typeNames.length)];
+            
+            const enemy = new Enemy(x, y, name, type);
+            enemy.difficulty = 'easy'; // Łatwy
+            this.enemies.push(enemy);
+        }
+        
+        // STREFA 2: ŚREDNIOZAAWANSOWANA (1000-2500 od obozu)
+        // Misje 4-6 (poziomy 4-6)
+        for (let i = 0; i < 9; i++) {
+            const types = ['snake', 'wasp', 'wolf', 'boar'];
+            const type = types[i % types.length];
+            
+            // Losowa pozycja dalej od obozu
+            const x = 500 + Math.random() * 2000;
+            const y = 500 + Math.random() * 2000;
+            
+            // Jeśli zbyt blisko obozu, przesuń
+            const distToCamp = Math.sqrt(Math.pow(x - campX, 2) + Math.pow(y - campY, 2));
+            if (distToCamp < campRadius + 400) continue;
+            
+            const typeNames = enemyNames[type];
+            const name = typeNames[Math.floor(Math.random() * typeNames.length)];
+            
+            const enemy = new Enemy(x, y, name, type);
+            enemy.difficulty = 'medium'; // Średni
+            this.enemies.push(enemy);
+        }
+        
+        // STREFA 3: TRUDNA (koniec mapy 2500-4000)
+        // Misje 7-10 (poziomy 7-10)
+        for (let i = 0; i < 8; i++) {
+            const types = ['bear', 'snake', 'wasp', 'wolf'];
+            const type = types[i % types.length];
+            
+            // Losowa pozycja na końcu mapy
+            const x = 2500 + Math.random() * 1300;
+            const y = 2500 + Math.random() * 1300;
+            
+            const typeNames = enemyNames[type];
+            const name = typeNames[Math.floor(Math.random() * typeNames.length)];
+            
+            const enemy = new Enemy(x, y, name, type);
+            enemy.difficulty = 'hard'; // Trudny
+            this.enemies.push(enemy);
         }
     }
 
@@ -1683,21 +2020,51 @@ class Game {
         this.updatePlayerMovement();
         this.player.update();
         this.updateCamera();
-        this.enemy.update(this.player.x, this.player.y);
         
-        // Obsługa respawnu wroga
-        if (!this.enemy.isAlive) {
-            this.enemy.respawnTimer -= 0.016; // ~60 FPS
-            if (this.enemy.respawnTimer <= 0) {
-                this.enemy.isAlive = true;
-                this.enemy.hp = this.enemy.maxHp;
-                this.enemy.x = this.enemy.spawnX;
-                this.enemy.y = this.enemy.spawnY;
-                this.enemy.isAggro = false;
+        // Update wszystkich wrogów
+        for (let enemy of this.enemies) {
+            enemy.update(this.player.x, this.player.y);
+            
+            // Obsługa respawnu wroga
+            if (!enemy.isAlive) {
+                enemy.respawnTimer -= 0.016; // ~60 FPS
+                if (enemy.respawnTimer <= 0) {
+                    enemy.isAlive = true;
+                    enemy.hp = enemy.maxHp;
+                    enemy.x = enemy.spawnX;
+                    enemy.y = enemy.spawnY;
+                    enemy.isAggro = false;
+                }
             }
         }
         
         this.checkCollisions();
+        
+        // Sprawdź teleport do miasta (mapa 1 -> mapa 2)
+        if (this.currentMap === 1 && this.teleportZone && this.teleportZone.active) {
+            if (this.player.x >= this.teleportZone.x &&
+                this.player.x <= this.teleportZone.x + this.teleportZone.width &&
+                this.player.y >= this.teleportZone.y &&
+                this.player.y <= this.teleportZone.y + this.teleportZone.height) {
+                // Teleportuj do miasta
+                this.currentMap = 2;
+                this.player.x = this.teleportZone.destX;
+                this.player.y = this.teleportZone.destY;
+            }
+        }
+
+        // Sprawdź teleport powrotny (mapa 2 -> mapa 1)
+        if (this.currentMap === 2 && this.returnTeleportZone && this.returnTeleportZone.active) {
+            if (this.player.x >= this.returnTeleportZone.x &&
+                this.player.x <= this.returnTeleportZone.x + this.returnTeleportZone.width &&
+                this.player.y >= this.returnTeleportZone.y &&
+                this.player.y <= this.returnTeleportZone.y + this.returnTeleportZone.height) {
+                // Teleportuj do wioski
+                this.currentMap = 1;
+                this.player.x = this.returnTeleportZone.destX;
+                this.player.y = this.returnTeleportZone.destY;
+            }
+        }
         
         // Update walki w czasie rzeczywistym
         if (this.battle) {
@@ -1729,13 +2096,19 @@ class Game {
     }
 
     checkCollisions() {
-        // Kolizja z wrogiem
-        const dx = (this.player.x + this.player.width / 2) - (this.enemy.x + this.enemy.width / 2);
-        const dy = (this.player.y + this.player.height / 2) - (this.enemy.y + this.enemy.height / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        // Kolizja z wrogami
+        for (let enemy of this.enemies) {
+            if (!enemy.isAlive) continue;
+            
+            const dx = (this.player.x + this.player.width / 2) - (enemy.x + enemy.width / 2);
+            const dy = (this.player.y + this.player.height / 2) - (enemy.y + enemy.height / 2);
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < 50 && !this.battle && this.enemy.isAlive) {
-            this.startBattle();
+            if (distance < 50 && !this.battle) {
+                this.currentEnemy = enemy;
+                this.startBattle();
+                return;
+            }
         }
 
         // Kolizje z NPC
@@ -1835,7 +2208,8 @@ class Game {
     }
 
     startBattle() {
-        this.battle = new Battle(this.player, this.enemy);
+        if (!this.currentEnemy) return;
+        this.battle = new Battle(this.player, this.currentEnemy);
         // Assign class-specific skills to the battle instance
         const cls = (this.player && this.player.className) ? this.player.className : 'Wojownik';
         if (cls === 'Wojownik') {
@@ -1865,69 +2239,84 @@ class Game {
         
         document.getElementById('battleHUD').classList.add('hidden');
         
+        // Sprawdzenie czy gracz zginie
+        const playerDied = this.player.hp <= 0;
+        
         // Sprawdzenie czy wróg umiera
-        const enemyDefeated = this.enemy.hp <= 0;
+        const enemyDefeated = this.currentEnemy && this.currentEnemy.hp <= 0;
         
         this.battle = null; // Wyczyść bitwę natychmiast
 
-        if (enemyDefeated) {
+        if (playerDied) {
+            // Gracz zginie - respawn w wiosce
+            this.respawnPlayer();
+        } else if (enemyDefeated) {
             // Wróg pokonany - respawn po 10 sekundach
-            this.enemy.isAlive = false;
-            this.enemy.respawnTimer = this.enemy.respawnTime;
-            this.enemy.isAggro = false; // Wyłącz aggro
+            this.currentEnemy.isAlive = false;
+            this.currentEnemy.respawnTimer = this.currentEnemy.respawnTime;
+            this.currentEnemy.isAggro = false; // Wyłącz aggro
             this.player.heal(20); // Bonus zdrowia
             
             // Update quest progress
-            this.updateQuestProgress();
+            this.updateQuestProgress(this.currentEnemy);
         }
     }
 
-    updateQuestProgress() {
-        // Zliczaj postęp dla aktywnych misji powiązanych z Dzikami
+    respawnPlayer() {
+        // Respawn gracza w wiosce (spawn point)
+        this.player.hp = this.player.maxHp; // Pełne HP
+        this.player.x = 2000; // Środek mapy - wioska
+        this.player.y = 2000;
+        
+        // Wróć na mapę 1 jeśli był na mapie 2
+        this.currentMap = 1;
+        
+        // Komunikat
+        console.log('💀 Zostałeś pokonany! Odradzasz się w wiosce...');
+        
+        // Opcjonalnie: kara za śmierć (np. -10% gold)
+        const goldLoss = Math.floor((this.player.gold || 0) * 0.1);
+        if (goldLoss > 0) {
+            this.player.gold = Math.max(0, (this.player.gold || 0) - goldLoss);
+            console.log(`💰 Straciłeś ${goldLoss} złota...`);
+        }
+        
+        // Autozapis
+        this.saveGameState();
+    }
+
+    updateQuestProgress(defeatedEnemy) {
+        if (!defeatedEnemy) return;
+        
+        // Mapuj typ potwora do dropa
+        const dropItems = {
+            'boar': new Item("Mięso Dzika", "🥩", 'drop', null, 1),
+            'wolf': new Item("Futro Wilka", "🐺", 'drop', null, 1),
+            'bear': new Item("Szapa Niedźwiedzia", "🐾", 'drop', null, 1),
+            'whelp': new Item("Pazury Wilczka", "🐾", 'drop', null, 1),
+            'wasp': new Item("Żądło Osy", "⚔", 'drop', null, 1),
+            'snake': new Item("Jad Węża", "☠", 'drop', null, 1)
+        };
+        
+        // Zliczaj postęp dla aktywnych misji
         for (let quest of this.activeQuests) {
             if (quest.completed) continue;
-            if (quest.mobName !== "Dzik") continue;
-
-            // Quest 0: meat collection - must add meat to inventory to count
-            if (quest.id === 0) {
-                const meatItem = new Item("Mięso Dzika", "🥩", 'drop', 0, 1);
-                const added = this.player.inventory.addItem(meatItem);
+            if (quest.mobType !== defeatedEnemy.type) continue;
+            
+            // Dropuj item z potwora
+            const dropItem = dropItems[defeatedEnemy.type];
+            if (dropItem) {
+                const added = this.player.inventory.addItem(new Item(dropItem.name, dropItem.icon, dropItem.type, quest.id, 1));
                 if (added) {
                     quest.progress++;
-                    console.log(`Zebrano mięso (${quest.progress}/${quest.mobCount})`);
-                    
-                    // 10% szansa na drop ekwipunku
-                    if (Math.random() < 0.1) {
-                        const equipment = [
-                            new Item("Miecz Myśliwego", "⚔", 'weapon', null, 1, 3, 0),
-                            new Item("Skórzana Zbroja", "🛡", 'armor', null, 1, 0, 2)
-                        ];
-                        const randomEq = equipment[Math.floor(Math.random() * equipment.length)];
-                        this.player.inventory.addItem(randomEq);
-                        console.log(`Padł ${randomEq.name}!`);
-                    }
+                    console.log(`${dropItem.name} +1 (${quest.progress}/${quest.mobCount})`);
                 } else {
-                    console.log('Inventory pełny - nie można zebrać mięsa');
+                    console.log('Inventory pełny - nie można zebrać dropa');
                 }
-            }
-
-            // Quest 1: hunting practice - each kill counts
-            else if (quest.id === 1) {
+            } else {
                 quest.progress++;
-                console.log(`Postęp treningu: ${quest.progress}/${quest.mobCount}`);
             }
-
-            // Quest 2: real boar - 50% chance per kill to be the real one
-            else if (quest.id === 2) {
-                const success = Math.random() < 0.5;
-                if (success) {
-                    quest.progress++;
-                    console.log('Udało się zabić prawdziwego dzika!');
-                } else {
-                    console.log('To jeszcze nie był prawdziwy dzik... walcz dalej');
-                }
-            }
-
+            
             if (quest.progress >= quest.mobCount) {
                 quest.completed = true;
                 this.completeQuest(quest);
@@ -2172,12 +2561,16 @@ class Game {
         // Zastosuj transformację kamery (przesuń view względem gracza)
         this.ctx.translate(-this.cameraX, -this.cameraY);
 
-        // --- Rysuj tło mapy z trawą ---
-        this.drawMapGrass();
+        // --- Rysuj tło i planszę w zależności od currentMap ---
+        if (this.currentMap === 1) {
+            // MAPA 1: WIOSKA
+            this.drawMapGrass();
+            this.drawVillage();
+        } else if (this.currentMap === 2) {
+            // MAPA 2: WIELKIE MIASTO
+            this.drawBigCity();
+        }
         // ---
-
-        // Rysuj wiosłę
-        this.drawVillage();
 
         // Siatka (opcjonalnie)
         this.drawGrid();
@@ -2188,11 +2581,20 @@ class Game {
             this.drawNPCQuestMarker(npc);
         }
 
-        // Rysuj wroga
-        this.enemy.draw(this.ctx);
+        // Rysuj wrogów
+        for (let enemy of this.enemies) {
+            enemy.draw(this.ctx);
+        }
 
         // Rysuj gracza
         this.player.draw(this.ctx);
+
+        // Rysuj portale teleportacji
+        if (this.currentMap === 1) {
+            this.drawTeleportPortal();
+        } else if (this.currentMap === 2) {
+            this.drawReturnTeleportPortal();
+        }
 
         // Przywróć stan kontekstu (usuń transformację)
         this.ctx.restore();
@@ -2276,13 +2678,16 @@ class Game {
         this.minimapCtx.arc(playerMinimapX, playerMinimapY, 3, 0, Math.PI * 2);
         this.minimapCtx.fill();
 
-        // Rysuj wroga (czerwony punkt)
-        const enemyMinimapX = this.enemy.x * scale;
-        const enemyMinimapY = this.enemy.y * scale;
+        // Rysuj wrogów (czerwone punkty)
         this.minimapCtx.fillStyle = '#ff0000';
-        this.minimapCtx.beginPath();
-        this.minimapCtx.arc(enemyMinimapX, enemyMinimapY, 2, 0, Math.PI * 2);
-        this.minimapCtx.fill();
+        for (let enemy of this.enemies) {
+            if (!enemy.isAlive) continue;
+            const enemyMinimapX = enemy.x * scale;
+            const enemyMinimapY = enemy.y * scale;
+            this.minimapCtx.beginPath();
+            this.minimapCtx.arc(enemyMinimapX, enemyMinimapY, 2, 0, Math.PI * 2);
+            this.minimapCtx.fill();
+        }
 
         // Rysuj NPC (żółte punkty)
         this.minimapCtx.fillStyle = '#ffdd00';
@@ -2613,50 +3018,768 @@ class Game {
     }
 
     drawGrasslandVillage() {
-        // Tło - wielowarstwowe tereny z teksturą
-        const grassGradient = this.ctx.createLinearGradient(0, 0, 0, CONFIG.CANVAS_HEIGHT);
-        grassGradient.addColorStop(0, '#3a6e3a');
-        grassGradient.addColorStop(0.3, '#2d5a2d');
-        grassGradient.addColorStop(0.6, '#1f4620');
-        grassGradient.addColorStop(1, '#0d2d0d');
-        this.ctx.fillStyle = grassGradient;
-        this.ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+        if (this.currentMap === 1) {
+            // MAPA 1: Wioska startowa
+            this.drawStartVillage();
+            this.drawFantasyRoad();
+            this.drawTeleportPortal();
 
-        // Dodatna tekstura trawy (szum)
-        for (let i = 0; i < 100; i++) {
-            this.ctx.fillStyle = `rgba(0, 0, 0, ${Math.random() * 0.1})`;
-            const rx = Math.random() * CONFIG.CANVAS_WIDTH;
-            const ry = Math.random() * CONFIG.CANVAS_HEIGHT;
-            this.ctx.fillRect(rx, ry, 2, 2);
+            // Rysuj drzewa
+            for (let tree of this.trees) {
+                this.drawLargeTree(tree.x, tree.y);
+            }
+
+            // Rysuj kwiaty
+            for (let flower of this.flowers) {
+                this.drawFlower(flower.x, flower.y, flower.color);
+            }
+        } else if (this.currentMap === 2) {
+            // MAPA 2: Duże miasto
+            this.drawBigCity();
+            this.drawReturnTeleportPortal();
+
+            // Mniej drzew w mieście
+            for (let i = 0; i < Math.min(5, this.trees.length); i++) {
+                this.drawLargeTree(this.trees[i].x, this.trees[i].y);
+            }
         }
+    }
 
-        // Ciemniejsza area (las/las)
-        const forestGradient = this.ctx.createRadialGradient(150, 250, 0, 150, 250, 300);
-        forestGradient.addColorStop(0, 'rgba(0, 0, 0, 0.1)');
-        forestGradient.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
-        this.ctx.fillStyle = forestGradient;
+    drawStartVillage() {
+        // Wioska startowa w lewej części mapy (200-800, 200-700)
+        // Tło wioski
+        this.ctx.fillStyle = '#4a7c2d';
+        this.ctx.fillRect(150, 150, 700, 600);
+
+        // Płot wokół wioski
+        this.ctx.strokeStyle = '#654321';
+        this.ctx.lineWidth = 8;
+        this.ctx.strokeRect(150, 150, 700, 600);
+
+        // Dom 1 (czerwony dach)
+        this.drawHouse(200, 200, 120, 100, '#8b4513', '#b22222');
+        
+        // Dom 2 (niebieski dach)
+        this.drawHouse(400, 200, 100, 90, '#a0826d', '#4169e1');
+        
+        // Dom 3 (zielony dach)
+        this.drawHouse(620, 200, 110, 95, '#8b7355', '#228b22');
+        
+        // Dom 4 (pomarańczowy dach)
+        this.drawHouse(220, 400, 130, 110, '#9a7b4f', '#ff8c00');
+        
+        // Dom 5 (fioletowy dach)
+        this.drawHouse(450, 420, 100, 95, '#8b6f47', '#9370db');
+        
+        // Dom 6 (żółty dach)
+        this.drawHouse(650, 450, 115, 100, '#a0826d', '#ffd700');
+
+        // Studnia na środku
+        this.drawWell(400, 550);
+
+        // Znak wioski
+        this.drawVillageSign(250, 650);
+    }
+
+    drawHouse(x, y, width, height, wallColor, roofColor) {
+        // Ściany
+        this.ctx.fillStyle = wallColor;
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y, width, height);
+
+        // Dach (trójkąt)
+        this.ctx.fillStyle = roofColor;
         this.ctx.beginPath();
-        this.ctx.arc(150, 250, 300, 0, Math.PI * 2);
+        this.ctx.moveTo(x - 10, y);
+        this.ctx.lineTo(x + width / 2, y - 40);
+        this.ctx.lineTo(x + width + 10, y);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+
+        // Drzwi
+        this.ctx.fillStyle = '#654321';
+        this.ctx.fillRect(x + width / 2 - 15, y + height - 40, 30, 40);
+        this.ctx.strokeRect(x + width / 2 - 15, y + height - 40, 30, 40);
+
+        // Okna
+        this.ctx.fillStyle = '#87ceeb';
+        this.ctx.fillRect(x + 15, y + 20, 25, 25);
+        this.ctx.strokeRect(x + 15, y + 20, 25, 25);
+        this.ctx.fillRect(x + width - 40, y + 20, 25, 25);
+        this.ctx.strokeRect(x + width - 40, y + 20, 25, 25);
+
+        // Ramki okien
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + 27.5, y + 20);
+        this.ctx.lineTo(x + 27.5, y + 45);
+        this.ctx.moveTo(x + 15, y + 32.5);
+        this.ctx.lineTo(x + 40, y + 32.5);
+        this.ctx.stroke();
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + width - 27.5, y + 20);
+        this.ctx.lineTo(x + width - 27.5, y + 45);
+        this.ctx.moveTo(x + width - 40, y + 32.5);
+        this.ctx.lineTo(x + width - 15, y + 32.5);
+        this.ctx.stroke();
+    }
+
+    drawWell(x, y) {
+        // Base studni
+        this.ctx.fillStyle = '#696969';
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 30, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+
+        // Wnętrze (ciemne)
+        this.ctx.fillStyle = '#1a1a1a';
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 20, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Isometryczne kafelki terenu (ulepszone)
-        this.drawIsometricTerrain();
+        // Słupki
+        this.ctx.fillStyle = '#8b4513';
+        this.ctx.fillRect(x - 35, y - 60, 10, 60);
+        this.ctx.fillRect(x + 25, y - 60, 10, 60);
 
-        // Woda po lewej stronie (ulepszona)
-        this.drawWater(80, 150, 150, 400);
+        // Daszek
+        this.ctx.fillStyle = '#b22222';
+        this.ctx.beginPath();
+        this.ctx.moveTo(x - 40, y - 60);
+        this.ctx.lineTo(x, y - 80);
+        this.ctx.lineTo(x + 40, y - 60);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+    }
 
-        // Rysuj drzewa (wcześniej generowane)
-        for (let tree of this.trees) {
-            this.drawLargeTree(tree.x, tree.y);
+    drawVillageSign(x, y) {
+        // Słupek
+        this.ctx.fillStyle = '#654321';
+        this.ctx.fillRect(x - 5, y, 10, 60);
+
+        // Tablica
+        this.ctx.fillStyle = '#deb887';
+        this.ctx.fillRect(x - 60, y + 10, 120, 40);
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x - 60, y + 10, 120, 40);
+
+        // Tekst
+        this.ctx.fillStyle = '#000';
+        this.ctx.font = 'bold 14px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('START VILLAGE', x, y + 35);
+    }
+
+    drawFantasyRoad() {
+        // Droga fantasy z piasku i kamieni
+        const roadY = MAP_HEIGHT / 2 - 80;
+        const roadHeight = 160;
+        
+        // Piasek - jaśniejszy brąz
+        this.ctx.fillStyle = '#d2b48c';
+        this.ctx.fillRect(850, roadY, MAP_WIDTH - 850, roadHeight);
+
+        // Ciemniejsze brzegi (ziemia)
+        this.ctx.fillStyle = '#8b7355';
+        this.ctx.fillRect(850, roadY, MAP_WIDTH - 850, 20);
+        this.ctx.fillRect(850, roadY + roadHeight - 20, MAP_WIDTH - 850, 20);
+
+        // Kamienie na drodze (losowe, ale deterministyczne)
+        this.ctx.fillStyle = '#696969';
+        for (let i = 0; i < 40; i++) {
+            const seed = i * 12345;
+            const x = 850 + ((seed * 7) % (MAP_WIDTH - 850));
+            const y = roadY + 20 + ((seed * 13) % (roadHeight - 40));
+            const size = 8 + (seed % 15);
+            
+            // Kamień (nieregularny)
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, size, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Cień kamienia
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            this.ctx.beginPath();
+            this.ctx.ellipse(x + 2, y + 2, size * 0.8, size * 0.5, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = '#696969';
         }
 
-        // Rysuj kwiaty (wcześniej generowane)
-        for (let flower of this.flowers) {
-            this.drawFlower(flower.x, flower.y, flower.color);
+        // Mniejsze kamyczki
+        this.ctx.fillStyle = '#808080';
+        for (let i = 0; i < 80; i++) {
+            const seed = i * 54321;
+            const x = 850 + ((seed * 11) % (MAP_WIDTH - 850));
+            const y = roadY + 20 + ((seed * 17) % (roadHeight - 40));
+            const size = 3 + (seed % 5);
+            
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, size, 0, Math.PI * 2);
+            this.ctx.fill();
         }
 
-        // Ścieżka (ulepszona)
-        this.drawPath();
+        // Trawa przy brzegach
+        this.ctx.fillStyle = '#228b22';
+        for (let i = 0; i < 30; i++) {
+            const seed = i * 98765;
+            const x = 850 + ((seed * 19) % (MAP_WIDTH - 850));
+            const side = (seed % 2);
+            const y = side === 0 ? roadY + 5 : roadY + roadHeight - 5;
+            
+            // Kępka trawy
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, y);
+            this.ctx.lineTo(x - 3, y + 8);
+            this.ctx.lineTo(x + 3, y + 8);
+            this.ctx.closePath();
+            this.ctx.fill();
+        }
+    }
+
+    drawTeleportPortal() {
+        if (!this.teleportZone || this.currentMap !== 1) return;
+
+        const x = this.teleportZone.x + this.teleportZone.width / 2;
+        const y = this.teleportZone.y + this.teleportZone.height / 2;
+
+        // Kamienny portal fantasy
+        const time = Date.now() / 1000;
+        
+        // Lewy słup
+        this.ctx.fillStyle = '#4a4a4a';
+        this.ctx.fillRect(x - 70, y - 100, 30, 200);
+        this.ctx.strokeStyle = '#2a2a2a';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(x - 70, y - 100, 30, 200);
+        
+        // Prawy słup
+        this.ctx.fillRect(x + 40, y - 100, 30, 200);
+        this.ctx.strokeRect(x + 40, y - 100, 30, 200);
+        
+        // Górny łuk
+        this.ctx.beginPath();
+        this.ctx.arc(x, y - 100, 70, Math.PI, 0, false);
+        this.ctx.lineTo(x + 70, y - 100);
+        this.ctx.lineTo(x + 40, y - 100);
+        this.ctx.arc(x, y - 100, 40, 0, Math.PI, true);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+
+        // Portal energii (pulsujący)
+        const radius = 60 + Math.sin(time * 2) * 5;
+        const gradient = this.ctx.createRadialGradient(x, y, 10, x, y, radius);
+        gradient.addColorStop(0, 'rgba(0, 255, 255, 0.9)');
+        gradient.addColorStop(0.5, 'rgba(0, 150, 255, 0.6)');
+        gradient.addColorStop(1, 'rgba(0, 50, 150, 0.2)');
+
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.ellipse(x, y, 40, 80, 0, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Wewnętrzny błysk
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.beginPath();
+        this.ctx.ellipse(x - 10, y - 20, 15, 30, 0.3, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Magiczne cząsteczki
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2 + time * 0.5;
+            const dist = 50 + Math.sin(time * 3 + i) * 10;
+            const px = x + Math.cos(angle) * dist;
+            const py = y + Math.sin(angle) * dist;
+            this.ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(time * 2 + i) * 0.5})`;
+            this.ctx.beginPath();
+            this.ctx.arc(px, py, 3, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+
+        // Runy na słupach
+        this.ctx.fillStyle = '#00ffff';
+        this.ctx.font = 'bold 20px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('◊', x - 55, y - 50);
+        this.ctx.fillText('◊', x - 55, y);
+        this.ctx.fillText('◊', x - 55, y + 50);
+        this.ctx.fillText('◊', x + 55, y - 50);
+        this.ctx.fillText('◊', x + 55, y);
+        this.ctx.fillText('◊', x + 55, y + 50);
+
+        // Tekst
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeText('DO MIASTA', x, y - 120);
+        this.ctx.fillText('DO MIASTA', x, y - 120);
+    }
+
+    drawReturnTeleportPortal() {
+        if (!this.returnTeleportZone || this.currentMap !== 2) return;
+
+        const x = this.returnTeleportZone.x + this.returnTeleportZone.width / 2;
+        const y = this.returnTeleportZone.y + this.returnTeleportZone.height / 2;
+
+        // Kamienny portal powrotny
+        const time = Date.now() / 1000;
+        
+        // Lewy słup
+        this.ctx.fillStyle = '#4a4a4a';
+        this.ctx.fillRect(x - 70, y - 100, 30, 200);
+        this.ctx.strokeStyle = '#2a2a2a';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(x - 70, y - 100, 30, 200);
+        
+        // Prawy słup
+        this.ctx.fillRect(x + 40, y - 100, 30, 200);
+        this.ctx.strokeRect(x + 40, y - 100, 30, 200);
+        
+        // Górny łuk
+        this.ctx.beginPath();
+        this.ctx.arc(x, y - 100, 70, Math.PI, 0, false);
+        this.ctx.lineTo(x + 70, y - 100);
+        this.ctx.lineTo(x + 40, y - 100);
+        this.ctx.arc(x, y - 100, 40, 0, Math.PI, true);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+
+        // Portal energii (zielony dla powrotu)
+        const radius = 60 + Math.sin(time * 2) * 5;
+        const gradient = this.ctx.createRadialGradient(x, y, 10, x, y, radius);
+        gradient.addColorStop(0, 'rgba(50, 255, 50, 0.9)');
+        gradient.addColorStop(0.5, 'rgba(0, 200, 0, 0.6)');
+        gradient.addColorStop(1, 'rgba(0, 100, 0, 0.2)');
+
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.ellipse(x, y, 40, 80, 0, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Magiczne cząsteczki
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2 + time * 0.5;
+            const dist = 50 + Math.sin(time * 3 + i) * 10;
+            const px = x + Math.cos(angle) * dist;
+            const py = y + Math.sin(angle) * dist;
+            this.ctx.fillStyle = `rgba(50, 255, 50, ${0.5 + Math.sin(time * 2 + i) * 0.5})`;
+            this.ctx.beginPath();
+            this.ctx.arc(px, py, 3, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+
+        // Tekst
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeText('DO WIOSKI', x, y - 120);
+        this.ctx.fillText('DO WIOSKI', x, y - 120);
+    }
+
+    drawBigCity() {
+        // Duże miasto fantasy (mapa 2) - PEŁNA MAPA!
+        
+        // TŁO: Cały ekran z brukowanym tłem miasta
+        const backgroundGradient = this.ctx.createLinearGradient(0, 0, 0, MAP_HEIGHT);
+        backgroundGradient.addColorStop(0, '#5a4a3a');
+        backgroundGradient.addColorStop(0.5, '#6b5d4f');
+        backgroundGradient.addColorStop(1, '#4a3a2a');
+        this.ctx.fillStyle = backgroundGradient;
+        this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+
+        // Kamienne bruki po całej mapie (tekstura)
+        this.ctx.strokeStyle = '#3a2a1a';
+        this.ctx.lineWidth = 1;
+        for (let x = 0; x < MAP_WIDTH; x += 30) {
+            for (let y = 0; y < MAP_HEIGHT; y += 30) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(x + 28, y + 2);
+                this.ctx.lineTo(x + 30, y + 30);
+                this.ctx.lineTo(x + 2, y + 28);
+                this.ctx.closePath();
+                this.ctx.stroke();
+            }
+        }
+
+        // Główne ulice
+        this.ctx.fillStyle = '#8b7355';
+        this.ctx.fillRect(0, MAP_HEIGHT / 2 - 80, MAP_WIDTH, 160); // Główna ulica pozioma
+        this.ctx.fillRect(MAP_WIDTH / 2 - 80, 0, 160, MAP_HEIGHT); // Główna ulica pionowa
+
+        // GŁÓWNE BUDYNKI - Centrum miasta
+        const centerX = MAP_WIDTH / 2;
+        const centerY = MAP_HEIGHT / 2;
+
+        // Ratusz (gigantyczny w centrum)
+        this.drawTownHall(centerX - 100, centerY - 75);
+
+        // SKLEPY - Górna lewa kwadrant
+        this.drawShop(300, 200, 'SKLEP', '#ff6347');
+        this.drawShop(550, 200, 'KARCZMA', '#daa520');
+        this.drawShop(800, 200, 'KOWAL', '#708090');
+        this.drawShop(200, 450, 'APTEKA', '#32cd32');
+        this.drawShop(450, 450, 'BANK', '#4169e1');
+        this.drawShop(700, 450, 'MAGAZYN', '#8b4513');
+
+        // DOMY MIESZKALNE - Różne części miasta
+        this.drawSmallHouse(200, 250, '#d2691e');
+        this.drawSmallHouse(300, 250, '#cd853f');
+        this.drawSmallHouse(900, 250, '#daa520');
+        this.drawSmallHouse(1000, 250, '#b8860b');
+        
+        this.drawSmallHouse(150, 800, '#8b4513');
+        this.drawSmallHouse(250, 800, '#d2691e');
+        this.drawSmallHouse(350, 800, '#cd853f');
+        this.drawSmallHouse(1000, 900, '#daa520');
+        this.drawSmallHouse(1100, 900, '#b8860b');
+
+        // FONTANNIE - Różne lokalizacje
+        this.drawFountain(centerX, centerY + 150);
+        this.drawFountain(600, 600);
+        this.drawFountain(1100, 500);
+
+        // DREWNIANY MUR MIASTA - Obramowanie
+        this.drawCityWall(50, 50, MAP_WIDTH - 100, MAP_HEIGHT - 100);
+
+        // DRZEWA DEKORACYJNE - W całym mieście
+        for (let i = 0; i < 30; i++) {
+            const tx = 150 + (i % 5) * 300 + Math.random() * 50;
+            const ty = 300 + Math.floor(i / 5) * 350 + Math.random() * 50;
+            this.drawTreeCity(tx, ty);
+        }
+
+        // LATARNIE - Po ulicach
+        for (let i = 0; i < 15; i++) {
+            const lx = 100 + i * 250;
+            const ly = MAP_HEIGHT / 2 - 100;
+            this.drawLantern(lx, ly);
+        }
+
+        // Banner powitalny
+        this.drawCityBanner();
+    }
+
+    drawTreeCity(x, y) {
+        // Drzewo w mieście
+        this.ctx.fillStyle = '#654321';
+        this.ctx.fillRect(x - 5, y, 10, 30);
+        
+        this.ctx.fillStyle = '#228b22';
+        this.ctx.beginPath();
+        this.ctx.arc(x, y - 15, 20, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.strokeStyle = '#1a5a1a';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+    }
+
+    drawLantern(x, y) {
+        // Latarnia
+        this.ctx.fillStyle = '#666';
+        this.ctx.fillRect(x - 3, y, 6, 25);
+        
+        this.ctx.fillStyle = '#ffd700';
+        this.ctx.fillRect(x - 10, y - 10, 20, 15);
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x - 10, y - 10, 20, 15);
+    }
+
+    drawCityBanner() {
+        // Banner na górze miasta
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(MAP_WIDTH / 2 - 150, 50, 300, 50);
+        
+        this.ctx.fillStyle = '#ffd700';
+        this.ctx.font = 'bold 32px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('VALDRHEIM', MAP_WIDTH / 2, 85);
+        
+        this.ctx.fillStyle = '#ffff99';
+        this.ctx.font = '14px Arial';
+        this.ctx.fillText('Wielkie Miasto Przygód', MAP_WIDTH / 2, 105);
+    }
+
+    drawTownHall(x, y) {
+        // Ratusz - duży budynek
+        const width = 200;
+        const height = 150;
+
+        // Ściany
+        this.ctx.fillStyle = '#dcdcdc';
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(x, y, width, height);
+
+        // Dach (duży trójkąt)
+        this.ctx.fillStyle = '#8b0000';
+        this.ctx.beginPath();
+        this.ctx.moveTo(x - 20, y);
+        this.ctx.lineTo(x + width / 2, y - 60);
+        this.ctx.lineTo(x + width + 20, y);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+
+        // Wieża zegarowa
+        this.ctx.fillStyle = '#a9a9a9';
+        this.ctx.fillRect(x + width / 2 - 20, y - 120, 40, 60);
+        this.ctx.strokeRect(x + width / 2 - 20, y - 120, 40, 60);
+
+        // Zegar
+        this.ctx.fillStyle = '#fff';
+        this.ctx.beginPath();
+        this.ctx.arc(x + width / 2, y - 90, 15, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+
+        // Wskazówki zegara
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + width / 2, y - 90);
+        this.ctx.lineTo(x + width / 2, y - 100);
+        this.ctx.moveTo(x + width / 2, y - 90);
+        this.ctx.lineTo(x + width / 2 + 8, y - 90);
+        this.ctx.stroke();
+
+        // Szpic wieży
+        this.ctx.fillStyle = '#ffd700';
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + width / 2 - 25, y - 120);
+        this.ctx.lineTo(x + width / 2, y - 150);
+        this.ctx.lineTo(x + width / 2 + 25, y - 120);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+
+        // Drzwi główne
+        this.ctx.fillStyle = '#654321';
+        this.ctx.fillRect(x + width / 2 - 30, y + height - 60, 60, 60);
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x + width / 2 - 30, y + height - 60, 60, 60);
+
+        // Okna
+        this.ctx.fillStyle = '#87ceeb';
+        for (let i = 0; i < 3; i++) {
+            const wx = x + 30 + i * 70;
+            this.ctx.fillRect(wx, y + 30, 30, 30);
+            this.ctx.strokeRect(wx, y + 30, 30, 30);
+            this.ctx.fillRect(wx, y + 80, 30, 30);
+            this.ctx.strokeRect(wx, y + 80, 30, 30);
+        }
+
+        // Napis
+        this.ctx.fillStyle = '#000';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('RATUSZ', x + width / 2, y + 20);
+    }
+
+    drawShop(x, y, name, color) {
+        const width = 120;
+        const height = 100;
+
+        // Ściany
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y, width, height);
+
+        // Dach
+        this.ctx.fillStyle = '#654321';
+        this.ctx.beginPath();
+        this.ctx.moveTo(x - 10, y);
+        this.ctx.lineTo(x + width / 2, y - 30);
+        this.ctx.lineTo(x + width + 10, y);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+
+        // Drzwi
+        this.ctx.fillStyle = '#8b4513';
+        this.ctx.fillRect(x + width / 2 - 15, y + height - 40, 30, 40);
+        this.ctx.strokeRect(x + width / 2 - 15, y + height - 40, 30, 40);
+
+        // Okno
+        this.ctx.fillStyle = '#87ceeb';
+        this.ctx.fillRect(x + 20, y + 30, 35, 35);
+        this.ctx.strokeRect(x + 20, y + 30, 35, 35);
+        this.ctx.fillRect(x + width - 55, y + 30, 35, 35);
+        this.ctx.strokeRect(x + width - 55, y + 30, 35, 35);
+
+        // Napis
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = 'bold 12px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeText(name, x + width / 2, y + 15);
+        this.ctx.fillText(name, x + width / 2, y + 15);
+    }
+
+    drawSmallHouse(x, y, color) {
+        const width = 70;
+        const height = 70;
+
+        // Ściany
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y, width, height);
+
+        // Dach
+        this.ctx.fillStyle = '#b22222';
+        this.ctx.beginPath();
+        this.ctx.moveTo(x - 5, y);
+        this.ctx.lineTo(x + width / 2, y - 25);
+        this.ctx.lineTo(x + width + 5, y);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+
+        // Drzwi
+        this.ctx.fillStyle = '#654321';
+        this.ctx.fillRect(x + width / 2 - 10, y + height - 30, 20, 30);
+        this.ctx.strokeRect(x + width / 2 - 10, y + height - 30, 20, 30);
+
+        // Okno
+        this.ctx.fillStyle = '#87ceeb';
+        this.ctx.fillRect(x + 10, y + 15, 20, 20);
+        this.ctx.strokeRect(x + 10, y + 15, 20, 20);
+    }
+
+    drawFountain(x, y) {
+        // Basen fontanny
+        this.ctx.fillStyle = '#4682b4';
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 40, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+
+        // Obramowanie
+        this.ctx.strokeStyle = '#696969';
+        this.ctx.lineWidth = 5;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 45, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // Kolumna środkowa
+        this.ctx.fillStyle = '#708090';
+        this.ctx.fillRect(x - 8, y - 30, 16, 30);
+
+        // Woda (efekt tryskania)
+        this.ctx.strokeStyle = '#87ceeb';
+        this.ctx.lineWidth = 2;
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const ex = x + Math.cos(angle) * 15;
+            const ey = y + Math.sin(angle) * 15 - 30;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, y - 30);
+            this.ctx.quadraticCurveTo(x, y - 50, ex, ey);
+            this.ctx.stroke();
+        }
+    }
+
+    drawCityWall(x, y, width, height) {
+        // Drewniany mur z palisadą (fantasy style)
+        const wallColor = '#5c4033';
+        const darkWood = '#3d2817';
+        
+        // Dolna część muru (grubsze belki)
+        this.ctx.fillStyle = darkWood;
+        this.ctx.fillRect(x, y, width, 20);
+        this.ctx.fillRect(x, y + height - 20, width, 20);
+        
+        // Pionowe pale (po lewej i prawej)
+        for (let i = 0; i < height; i += 15) {
+            // Lewa strona
+            this.ctx.fillStyle = wallColor;
+            this.ctx.fillRect(x, y + i, 20, 12);
+            this.ctx.strokeStyle = darkWood;
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(x, y + i, 20, 12);
+            
+            // Prawa strona
+            this.ctx.fillRect(x + width - 20, y + i, 20, 12);
+            this.ctx.strokeRect(x + width - 20, y + i, 20, 12);
+        }
+        
+        // Górne i dolne pale (poziome)
+        for (let i = 20; i < width - 20; i += 15) {
+            // Góra
+            this.ctx.fillStyle = wallColor;
+            this.ctx.fillRect(x + i, y, 12, 20);
+            this.ctx.strokeStyle = darkWood;
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(x + i, y, 12, 20);
+            
+            // Dół
+            this.ctx.fillRect(x + i, y + height - 20, 12, 20);
+            this.ctx.strokeRect(x + i, y + height - 20, 12, 20);
+        }
+        
+        // Wieże narożne (4 rogi)
+        this.drawTower(x - 30, y - 30);
+        this.drawTower(x + width + 10, y - 30);
+        this.drawTower(x - 30, y + height + 10);
+        this.drawTower(x + width + 10, y + height + 10);
+    }
+    
+    drawTower(x, y) {
+        // Wieża strażnicza
+        const towerWidth = 40;
+        const towerHeight = 60;
+        
+        // Podstawa wieży (kamienna)
+        this.ctx.fillStyle = '#696969';
+        this.ctx.fillRect(x, y, towerWidth, towerHeight);
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y, towerWidth, towerHeight);
+        
+        // Dach wieży (stożek)
+        this.ctx.fillStyle = '#8b4513';
+        this.ctx.beginPath();
+        this.ctx.moveTo(x - 5, y);
+        this.ctx.lineTo(x + towerWidth / 2, y - 30);
+        this.ctx.lineTo(x + towerWidth + 5, y);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+        
+        // Okno w wieży
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(x + 12, y + 20, 16, 20);
+        
+        // Pochódnia/światło
+        this.ctx.fillStyle = '#ff6347';
+        this.ctx.beginPath();
+        this.ctx.arc(x + 20, y + 15, 4, 0, Math.PI * 2);
+        this.ctx.fill();
     }
 
     drawFlower(x, y, color) {
