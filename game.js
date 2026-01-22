@@ -5185,6 +5185,18 @@ function handleLogout() {
 // CHAT SYSTEM
 // ============================================
 
+function sendSystemMessage(text) {
+    const message = {
+        type: 'system',
+        text: text,
+        timestamp: Date.now()
+    };
+    
+    database.ref('chat/messages').push(message).catch(error => {
+        console.error('[Chat] System message error:', error);
+    });
+}
+
 function initChat() {
     const chatInput = document.getElementById('chatInput');
     const chatSendBtn = document.getElementById('chatSendBtn');
@@ -5259,18 +5271,6 @@ function displayChatMessage(message) {
     while (chatMessages.children.length > 50) {
         chatMessages.removeChild(chatMessages.firstChild);
     }
-}
-
-function sendSystemMessage(text) {
-    const message = {
-        type: 'system',
-        text: text,
-        timestamp: Date.now()
-    };
-    
-    database.ref('chat/messages').push(message).catch(error => {
-        console.error('[Chat] System message error:', error);
-    });
 }
 
 function escapeHtml(text) {
