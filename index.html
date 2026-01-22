@@ -10,11 +10,36 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- LOGIN/REGISTER SCREEN -->
+    <div id="authScreen" class="menu">
+        <div class="menu-container">
+            <h1>RPG 2D</h1>
+            <div id="loginForm" class="auth-form">
+                <h3>Zaloguj się</h3>
+                <input type="email" id="loginEmail" placeholder="Email" class="auth-input">
+                <input type="password" id="loginPassword" placeholder="Hasło" class="auth-input">
+                <button id="loginBtn" class="menu-btn">Zaloguj</button>
+                <p id="loginError" class="auth-error"></p>
+                <p style="margin-top: 20px;">Nie masz konta? <button id="showRegisterBtn" class="link-btn">Zarejestruj się</button></p>
+            </div>
+            <div id="registerForm" class="auth-form hidden">
+                <h3>Rejestracja</h3>
+                <input type="email" id="registerEmail" placeholder="Email" class="auth-input">
+                <input type="password" id="registerPassword" placeholder="Hasło (min 6 znaków)" class="auth-input">
+                <input type="password" id="registerPassword2" placeholder="Powtórz hasło" class="auth-input">
+                <button id="registerBtn" class="menu-btn">Zarejestruj</button>
+                <p id="registerError" class="auth-error"></p>
+                <p style="margin-top: 20px;"><button id="showLoginBtn" class="link-btn">Powrót do logowania</button></p>
+            </div>
+        </div>
+    </div>
+
     <!-- MENU STARTOWE -->
-    <div id="mainMenu" class="menu">
+    <div id="mainMenu" class="menu hidden">
         <div class="menu-container">
             <h1>RPG 2D</h1>
             <button id="newGameBtn" class="menu-btn">Graj</button>
+            <button id="logoutBtn" class="menu-btn secondary">Wyloguj</button>
         </div>
     </div>
 
@@ -221,6 +246,7 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <script src="autosave.js"></script>
     <script src="game.js"></script>

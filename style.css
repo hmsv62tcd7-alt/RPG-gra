@@ -98,6 +98,81 @@ body {
     font-weight: bold;
     transition: all 0.3s ease;
     box-shadow: 0 10px 30px rgba(255, 102, 51, 0.35);
+    margin: 10px 0;
+}
+
+.menu-btn:hover {
+    background: linear-gradient(135deg, #ffb85f, #ff7f4d);
+    box-shadow: 0 15px 40px rgba(255, 102, 51, 0.5);
+}
+
+.menu-btn.secondary {
+    background: #333;
+    color: #fff;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.menu-btn.secondary:hover {
+    background: #444;
+}
+
+/* Auth Form Styles */
+.auth-form {
+    width: 100%;
+    max-width: 350px;
+}
+
+.auth-form.hidden {
+    display: none;
+}
+
+.auth-form h3 {
+    color: #ffd77a;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid var(--bg-gold);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.auth-input:focus {
+    outline: none;
+    border-color: #ffb85f;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.auth-input::placeholder {
+    color: #999;
+}
+
+.auth-error {
+    color: #ff6b6b;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: #4fc3f7;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 0.95rem;
+}
+
+.link-btn:hover {
+    color: #79d8ff;
+}
     letter-spacing: 0.5px;
 }
 

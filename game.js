@@ -4,19 +4,21 @@
 
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBYJSqKrGvEjJhkqY9z5x3w1v2u3t4s5r6",
-    authDomain: "rpg-gra-default.firebaseapp.com",
-    databaseURL: "https://rpg-gra-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "rpg-gra-default",
-    storageBucket: "rpg-gra-default.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abc123def456"
+  apiKey: "AIzaSyB59jEt8zSwFwDdoND89LuT-s-xwl2vjKI",
+  authDomain: "rpg-gra.firebaseapp.com",
+  databaseURL: "https://rpg-gra-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "rpg-gra",
+  storageBucket: "rpg-gra.firebasestorage.app",
+  messagingSenderId: "513783473198",
+  appId: "1:513783473198:web:dd2f6c68a6f344f291abbf",
+  measurementId: "G-7C2C97NV14"
 };
 
 // Initialize Firebase
 console.log('[Firebase] Initializing Firebase...');
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+const auth = firebase.auth();
 console.log('[Firebase] Firebase initialized, database:', database);
 
 // KONFIGURACJA
@@ -35,8 +37,24 @@ const MAP_WIDTH = 4000;
 const MAP_HEIGHT = 4000;
 
 // Multiplayer
-let playerId = 'player_' + Math.random().toString(36).substr(2, 9);
+let playerId = null;
+let currentUser = null;
 let otherPlayers = {};
+
+// Check auth state at startup
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        console.log('[Auth] Logged in as:', user.email);
+        currentUser = user;
+        playerId = 'player_' + user.uid.substr(0, 9);
+        showMainMenu();
+    } else {
+        console.log('[Auth] Not logged in');
+        currentUser = null;
+        playerId = null;
+        showAuthScreen();
+    }
+});
 
 // ============================================
 // KLASY
@@ -4957,26 +4975,26 @@ class Game {
         console.log('[Multiplayer] initMultiplayer called!');
         console.log('[Multiplayer] database:', database);
         console.log('[Multiplayer] this.player:', this.player);
-        console.log('[Multiplayer] Initializing with playerId:', playerId);
+        console.log('[Multiplayer] Initializing with user:', currentUser?.uid);
         
         // Ustaw listener dla innych graczy
         try {
-            database.ref('players').on('value', (snapshot) => {
-                const data = snapshot.val() || {};
-                console.log('[Multiplayer] Received players data:', data);
+            database.ref('users').on('value', (snapshot) => {
+                const usersData = snapshot.val() || {};
+                console.log('[Multiplayer] Received users data:', usersData);
                 
                 // Usuń graczy którzy się rozłączyli
-                for (let id in this.otherPlayers) {
-                    if (!data[id] || id === playerId) {
-                        delete this.otherPlayers[id];
+                for (let uid in this.otherPlayers) {
+                    if (!usersData[uid] || uid === currentUser.uid) {
+                        delete this.otherPlayers[uid];
                     }
                 }
                 
                 // Zaktualizuj pozostałych graczy
-                for (let id in data) {
-                    if (id !== playerId) {
-                        this.otherPlayers[id] = data[id];
-                        console.log('[Multiplayer] Updated player:', id, data[id]);
+                for (let uid in usersData) {
+                    if (uid !== currentUser.uid && usersData[uid].player) {
+                        this.otherPlayers[uid] = usersData[uid].player;
+                        console.log('[Multiplayer] Updated player:', uid, usersData[uid].player);
                     }
                 }
             }, (error) => {
@@ -4988,7 +5006,7 @@ class Game {
     }
 
     syncPlayerToFirebase() {
-        if (!this.player) return;
+        if (!this.player || !currentUser) return;
         
         const playerData = {
             x: this.player.x,
@@ -4999,7 +5017,7 @@ class Game {
             timestamp: Date.now()
         };
         
-        database.ref('players/' + playerId).set(playerData).then(() => {
+        database.ref('users/' + currentUser.uid + '/player').set(playerData).then(() => {
             console.log('[Multiplayer] Player synced:', playerData);
         }).catch((error) => {
             console.error('[Multiplayer] Sync error:', error);
@@ -5043,6 +5061,117 @@ class Game {
             this.ctx.fillText(other.name || 'Gracz', centerX, centerY - 18);
         }
     }
+}
+
+// ============================================
+// AUTHENTICATION
+// ============================================
+
+function showAuthScreen() {
+    document.getElementById('authScreen').classList.remove('hidden');
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('gameContainer').classList.add('hidden');
+    
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const showRegisterBtn = document.getElementById('showRegisterBtn');
+    const showLoginBtn = document.getElementById('showLoginBtn');
+    
+    loginBtn.addEventListener('click', handleLogin);
+    registerBtn.addEventListener('click', handleRegister);
+    showRegisterBtn.addEventListener('click', () => {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.remove('hidden');
+    });
+    showLoginBtn.addEventListener('click', () => {
+        document.getElementById('registerForm').classList.add('hidden');
+        document.getElementById('loginForm').classList.remove('hidden');
+    });
+}
+
+function showMainMenu() {
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('mainMenu').classList.remove('hidden');
+    document.getElementById('gameContainer').classList.add('hidden');
+    
+    const logoutBtn = document.getElementById('logoutBtn');
+    logoutBtn.addEventListener('click', handleLogout);
+}
+
+function handleLogin() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    
+    if (!email || !password) {
+        errorEl.textContent = 'Wpisz email i hasło!';
+        return;
+    }
+    
+    auth.signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+            console.log('[Auth] Login success:', userCredential.user.email);
+            errorEl.textContent = '';
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+        })
+        .catch(error => {
+            console.error('[Auth] Login error:', error);
+            errorEl.textContent = error.message;
+        });
+}
+
+function handleRegister() {
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+    const password2 = document.getElementById('registerPassword2').value;
+    const errorEl = document.getElementById('registerError');
+    
+    if (!email || !password || !password2) {
+        errorEl.textContent = 'Wypełnij wszystkie pola!';
+        return;
+    }
+    
+    if (password !== password2) {
+        errorEl.textContent = 'Hasła nie zgadzają się!';
+        return;
+    }
+    
+    if (password.length < 6) {
+        errorEl.textContent = 'Hasło musi mieć co najmniej 6 znaków!';
+        return;
+    }
+    
+    auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => {
+            console.log('[Auth] Register success:', userCredential.user.email);
+            errorEl.textContent = '';
+            document.getElementById('registerEmail').value = '';
+            document.getElementById('registerPassword').value = '';
+            document.getElementById('registerPassword2').value = '';
+            // Login successful, auth listener will handle showing main menu
+        })
+        .catch(error => {
+            console.error('[Auth] Register error:', error);
+            errorEl.textContent = error.message;
+        });
+}
+
+function handleLogout() {
+    // Usuń gracza z bazy przed wylogowaniem
+    if (currentUser) {
+        database.ref('users/' + currentUser.uid + '/player').remove().then(() => {
+            console.log('[Auth] Player removed from database');
+        });
+    }
+    
+    auth.signOut().then(() => {
+        console.log('[Auth] Logged out successfully');
+        currentUser = null;
+        playerId = null;
+    }).catch(error => {
+        console.error('[Auth] Logout error:', error);
+    });
 }
 
 // ============================================
