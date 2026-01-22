@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG 2D</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- MENU STARTOWE -->
+    <div id="mainMenu" class="menu">
+        <div class="menu-container">
+            <h1>RPG 2D</h1>
+            <button id="newGameBtn" class="menu-btn">Graj</button>
+        </div>
+    </div>
+
+    <!-- GRA -->
+    <div id="gameContainer" class="hidden">
+        <!-- HUD -->
+        <div id="hud" class="hud">
+            <div class="hud-item">
+                <span>HP:</span>
+                <div class="hp-bar">
+                    <div id="hpFill" class="hp-fill"></div>
+                </div>
+                <span id="hpText">100/100</span>
+            </div>
+            <div class="hud-item">
+                <span id="levelText">LVL: 1</span>
+            </div>
+            <div class="hud-item">
+                <span>EXP:</span>
+                <div class="exp-bar">
+                    <div id="expFill" class="exp-fill"></div>
+                </div>
+                <span id="expText">0/100</span>
+            </div>
+            <div class="hud-item">
+                <span id="goldText">Gold: 0</span>
+            </div>
+            <div class="hud-item">
+                <span id="invText">EQ: 0/20</span>
+            </div>
+            <div class="hud-item">
+                <span id="posText">Pozycja: 0, 0</span>
+            </div>
+        </div>
+
+        <!-- INVENTORY PANEL -->
+        <div id="inventoryPanel" class="inventory-panel">
+            <div class="panel-header">
+                <div class="inventory-title">🎒 Ekwipunek</div>
+                <button id="closeInventoryBtn" class="close-btn">✕</button>
+            </div>
+            <div id="inventoryGrid" class="inventory-grid"></div>
+        </div>
+
+        <!-- EQUIPMENT PANEL -->
+        <div id="equipmentPanel" class="equipment-panel">
+            <div class="panel-header">
+                <div class="equipment-title">⚔ Ekwipunek</div>
+                <button id="closeEquipmentBtn" class="close-btn">✕</button>
+            </div>
+            <div class="equipment-tabs">
+                <button class="tab-btn active" data-tab="equipped">Wyposażenie</button>
+                <button class="tab-btn" data-tab="shop">Sklep</button>
+            </div>
+            
+            <!-- EQUIPPED TAB -->
+            <div id="equippedTab" class="equipment-tab active">
+                <div class="equipment-slots">
+                    <div class="equipment-body">
+                        <div class="equipment-slot helmet-slot" data-slot="helmet" title="Hełm - Prawy klik: Załóż/Zdejmij">👤</div>
+                        <div class="equipment-slot armor-slot" data-slot="armor" title="Zbroja - Prawy klik: Załóż/Zdejmij">🛡</div>
+                        <div class="equipment-slot weapon-slot" data-slot="weapon" title="Broń - Prawy klik: Załóż/Zdejmij">⚔</div>
+                        <div class="equipment-slot shield-slot" data-slot="shield" title="Tarcza - Prawy klik: Załóż/Zdejmij">🔰</div>
+                        <div class="equipment-slot accessory-slot" data-slot="accessory" title="Akcesoria - Prawy klik: Załóż/Zdejmij">💍</div>
+                    </div>
+                    <div class="equipment-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">ATK:</span>
+                            <span class="stat-value" id="eqATK">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">DEF:</span>
+                            <span class="stat-value" id="eqDEF">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SHOP TAB -->
+            <div id="shopTab" class="equipment-tab">
+                <div class="shop-info">
+                    <div class="gold-display">Złoto: <span id="shopGold">0</span></div>
+                </div>
+                <div id="shopGrid" class="shop-grid"></div>
+            </div>
+        </div>
+
+        <!-- CANVAS -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- HUD Toggle Button -->
+        <button id="hudToggleBtn">📊 HUD</button>
+
+        <!-- Minimap -->
+        <canvas id="minimap"></canvas>
+
+        <!-- SKILL BAR (dolny HUD - zawsze widoczny) -->
+        <div id="battleHUD" class="battle-hud">
+            <div class="player-status">
+                <div class="status-bar">
+                    <h4 id="battlePlayerName">Ty</h4>
+                    <div class="battle-hp-bar">
+                        <div id="battlePlayerHp" class="battle-hp-fill"></div>
+                    </div>
+                    <span id="battlePlayerHpText">100/100</span>
+                </div>
+            </div>
+
+            <div class="skill-bar">
+                <button id="skillBtn1" class="skill-btn skill-1" disabled>
+                    <div class="skill-icon">⚔</div>
+                    <div class="skill-name">Atak</div>
+                    <div class="skill-cd" id="skillCD1">0.0s</div>
+                </button>
+                <button id="skillBtn2" class="skill-btn skill-2" disabled>
+                    <div class="skill-icon">❄</div>
+                    <div class="skill-name">Gwóźdź</div>
+                    <div class="skill-cd" id="skillCD2">0.0s</div>
+                </button>
+                <button id="skillBtn3" class="skill-btn skill-3" disabled>
+                    <div class="skill-icon">⚡</div>
+                    <div class="skill-name">Eksplozja</div>
+                    <div class="skill-cd" id="skillCD3">0.0s</div>
+                </button>
+            </div>
+
+            <div class="enemy-status">
+                <div class="status-bar">
+                    <h4 id="battleEnemyName">Brak wroga</h4>
+                    <div class="battle-hp-bar">
+                        <div id="battleEnemyHp" class="battle-hp-fill"></div>
+                    </div>
+                    <span id="battleEnemyHpText">--/--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- QUEST PANEL -->
+        <div id="questPanel" class="quest-panel">
+            <div class="quest-panel-title">📋 Aktywne Misje</div>
+            <div id="questList" class="quest-list"></div>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen hidden">
+        <div class="loading-box">
+            <div class="loading-title">Wczytywanie gry...</div>
+            <div class="loading-bar"><div id="loadingBarFill" class="loading-bar-fill"></div></div>
+            <div class="loading-sub">Proszę czekać</div>
+        </div>
+    </div>
+
+    <!-- Character Select Modal -->
+    <div id="charModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Wybierz postać</h3>
+            <div id="charSlots" class="char-slots"></div>
+            <div style="margin-top:10px; font-size:0.85rem; color:#ddd;">Autosave co 15s. Możesz tworzyć/usunąć do 3 postaci.</div>
+            <div class="modal-buttons">
+                <button id="modalCloseChar" class="modal-btn">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quest Modal -->
+    <div id="questModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="modalTitle">Misja</h3>
+            <p id="modalDesc">Opis misji...</p>
+            <div id="modalRewards" class="modal-rewards">EXP: <span id="modalExp">0</span> &nbsp; Gold: <span id="modalGold">0</span></div>
+            <div class="modal-buttons">
+                <button id="modalAccept" class="modal-btn">Akceptuj (A)</button>
+                <button id="modalReject" class="modal-btn">Odrzuć</button>
+                <button id="modalClaim" class="modal-btn">Odbierz</button>
+                <button id="modalClose" class="modal-btn">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dialogue Modal -->
+    <div id="dialogueModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="dialogueNPCName">NPC</h3>
+            <p id="dialogueText">Dialog...</p>
+            <div class="modal-buttons">
+                <button id="dialogueContinue" class="modal-btn">Dalej →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Menu (ESC) -->
+    <div id="pauseMenu" class="modal hidden">
+        <div class="modal-content">
+            <h3>Menu Pauzy</h3>
+            <div class="pause-buttons">
+                <button id="pauseResume" class="modal-btn">Wznów grę (ESC)</button>
+                <button id="pauseSelectChar" class="modal-btn">Wybierz postać</button>
+                <button id="pauseLogout" class="modal-btn">Wyloguj</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="autosave.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
