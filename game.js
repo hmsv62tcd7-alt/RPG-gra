@@ -14,8 +14,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
+console.log('[Firebase] Initializing Firebase...');
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+console.log('[Firebase] Firebase initialized, database:', database);
 
 // KONFIGURACJA
 const CONFIG = {
@@ -1500,9 +1502,6 @@ class Game {
                 this.charSlots = window.Autosave ? window.Autosave.loadSlots() : [null, null, null];
                 console.log('[Game] Character slots loaded:', this.charSlots);
                 this.showCharModal();
-                
-                // Inicjalizuj Firebase multiplayer
-                this.initMultiplayer();
             });
         } catch(e) {
             console.error('[Game] Error in startGame():', e);
@@ -1758,6 +1757,8 @@ class Game {
             this.acceptQuest(0);
         }
         this.gameRunning = true;
+        // Initialize multiplayer after player is fully ready
+        this.initMultiplayer();
         // start/restart autosave loop
         if (this._autosaveInterval) clearInterval(this._autosaveInterval);
         this._autosaveInterval = setInterval(() => {
@@ -4953,26 +4954,37 @@ class Game {
     // ============================================
 
     initMultiplayer() {
-        if (!this.player) return;
+        console.log('[Multiplayer] initMultiplayer called!');
+        console.log('[Multiplayer] database:', database);
+        console.log('[Multiplayer] this.player:', this.player);
+        console.log('[Multiplayer] Initializing with playerId:', playerId);
         
         // Ustaw listener dla innych graczy
-        database.ref('players').on('value', (snapshot) => {
-            const data = snapshot.val() || {};
-            
-            // Usuń graczy którzy się rozłączyli
-            for (let id in this.otherPlayers) {
-                if (!data[id] || id === playerId) {
-                    delete this.otherPlayers[id];
+        try {
+            database.ref('players').on('value', (snapshot) => {
+                const data = snapshot.val() || {};
+                console.log('[Multiplayer] Received players data:', data);
+                
+                // Usuń graczy którzy się rozłączyli
+                for (let id in this.otherPlayers) {
+                    if (!data[id] || id === playerId) {
+                        delete this.otherPlayers[id];
+                    }
                 }
-            }
-            
-            // Zaktualizuj pozostałych graczy
-            for (let id in data) {
-                if (id !== playerId) {
-                    this.otherPlayers[id] = data[id];
+                
+                // Zaktualizuj pozostałych graczy
+                for (let id in data) {
+                    if (id !== playerId) {
+                        this.otherPlayers[id] = data[id];
+                        console.log('[Multiplayer] Updated player:', id, data[id]);
+                    }
                 }
-            }
-        });
+            }, (error) => {
+                console.error('[Multiplayer] Firebase error:', error);
+            });
+        } catch (e) {
+            console.error('[Multiplayer] Exception:', e);
+        }
     }
 
     syncPlayerToFirebase() {
@@ -4981,19 +4993,28 @@ class Game {
         const playerData = {
             x: this.player.x,
             y: this.player.y,
-            name: this.player.name || 'Gracz',
+            name: this.selectedChar ? this.selectedChar.name : 'Gracz',
             level: this.player.level || 1,
             className: this.player.className || 'Wojownik',
             timestamp: Date.now()
         };
         
-        database.ref('players/' + playerId).set(playerData);
+        database.ref('players/' + playerId).set(playerData).then(() => {
+            console.log('[Multiplayer] Player synced:', playerData);
+        }).catch((error) => {
+            console.error('[Multiplayer] Sync error:', error);
+        });
     }
 
     drawOtherPlayers() {
+        const count = Object.keys(this.otherPlayers).length;
+        console.log('[Multiplayer] Drawing other players, count:', count, this.otherPlayers);
+        
         for (let id in this.otherPlayers) {
             const other = this.otherPlayers[id];
             if (!other) continue;
+            
+            console.log('[Multiplayer] Drawing player:', id, 'at', other.x, other.y);
             
             // Rysuj drugiego gracza na mapie
             const centerX = other.x + this.player.width / 2;
