@@ -2,6 +2,21 @@
 // RPG 2D - Gra w przeglądarce
 // ============================================
 
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyBYJSqKrGvEjJhkqY9z5x3w1v2u3t4s5r6",
+    authDomain: "rpg-gra-default.firebaseapp.com",
+    databaseURL: "https://rpg-gra-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "rpg-gra-default",
+    storageBucket: "rpg-gra-default.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abc123def456"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
 // KONFIGURACJA
 const CONFIG = {
     CANVAS_WIDTH: 1200,
@@ -16,6 +31,10 @@ const CONFIG = {
 // MAPA
 const MAP_WIDTH = 4000;
 const MAP_HEIGHT = 4000;
+
+// Multiplayer
+let playerId = 'player_' + Math.random().toString(36).substr(2, 9);
+let otherPlayers = {};
 
 // ============================================
 // KLASY
@@ -1162,6 +1181,9 @@ class Game {
         this.flowerDetails = {};    // Wygenerowane detale kwiatów
         this.treeDetails = {};      // Wygenerowane detale drzew (stabilne tekstury)
 
+        // Multiplayer
+        this.otherPlayers = {};     // Inni gracze online
+
         // Camera system
         this.cameraX = 0;
         this.cameraY = 0;
@@ -1478,6 +1500,9 @@ class Game {
                 this.charSlots = window.Autosave ? window.Autosave.loadSlots() : [null, null, null];
                 console.log('[Game] Character slots loaded:', this.charSlots);
                 this.showCharModal();
+                
+                // Inicjalizuj Firebase multiplayer
+                this.initMultiplayer();
             });
         } catch(e) {
             console.error('[Game] Error in startGame():', e);
@@ -2273,6 +2298,11 @@ class Game {
         return false;
     }
 
+    collidesWithInteriorCounter(rect) {
+        if (this.currentMap !== 3 || !this.interiorCounter) return false;
+        return this.rectsIntersect(rect, this.interiorCounter);
+    }
+
     applyMovementWithCollisions() {
         if (!this.player) return;
         const bounds = this.getCurrentMapBounds();
@@ -2283,7 +2313,7 @@ class Game {
         if (this.player.velocityX !== 0) {
             const candX = nextX + this.player.velocityX;
             const testRect = this.getPlayerRect(candX, nextY);
-            if (!this.collidesWithVillageBuildings(testRect)) {
+            if (!this.collidesWithVillageBuildings(testRect) && !this.collidesWithInteriorCounter(testRect)) {
                 nextX = candX;
             }
         }
@@ -2292,7 +2322,7 @@ class Game {
         if (this.player.velocityY !== 0) {
             const candY = nextY + this.player.velocityY;
             const testRect = this.getPlayerRect(nextX, candY);
-            if (!this.collidesWithVillageBuildings(testRect)) {
+            if (!this.collidesWithVillageBuildings(testRect) && !this.collidesWithInteriorCounter(testRect)) {
                 nextY = candY;
             }
         }
@@ -2405,6 +2435,13 @@ class Game {
         }
         
         this.updateHUD();
+        
+        // Synchronizuj pozycję gracza na Firebase (co 200ms)
+        if (!this.lastSyncTime) this.lastSyncTime = 0;
+        if (Date.now() - this.lastSyncTime > 200) {
+            this.syncPlayerToFirebase();
+            this.lastSyncTime = Date.now();
+        }
     }
 
     updateCamera() {
@@ -2934,6 +2971,11 @@ class Game {
 
         // Rysuj gracza
         this.player.draw(this.ctx);
+
+        // Rysuj innych graczy (multiplayer)
+        if (this.currentMap === 1 || this.currentMap === 2) {
+            this.drawOtherPlayers();
+        }
 
         // Rysuj portale teleportacji
         if (this.currentMap === 1) {
@@ -3969,6 +4011,98 @@ class Game {
             this.ctx.strokeStyle = '#3d2812';
             this.ctx.lineWidth = 2;
             this.ctx.strokeRect(c.x - 5, c.y, c.width + 10, 12);
+
+            // Przedmioty na ladzie
+            const itemY = c.y + 25;
+            const itemsPerRow = 4;
+            const itemSpacing = (c.width + 10) / itemsPerRow;
+            const startX = c.x - 2 + itemSpacing / 2;
+
+            // Miecz
+            this.drawEquipmentOnCounter(startX + 0, itemY, 'sword');
+            // Zbroja
+            this.drawEquipmentOnCounter(startX + itemSpacing, itemY, 'armor');
+            // Różdzka
+            this.drawEquipmentOnCounter(startX + itemSpacing * 2, itemY, 'staff');
+            // Łuk
+            this.drawEquipmentOnCounter(startX + itemSpacing * 3, itemY, 'bow');
+        }
+    }
+
+    drawEquipmentOnCounter(x, y, type) {
+        switch(type) {
+            case 'sword':
+                // Miecz
+                this.ctx.strokeStyle = '#c0c0c0';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(x, y + 25);
+                this.ctx.stroke();
+                // Rękojeść
+                this.ctx.fillStyle = '#8b4513';
+                this.ctx.fillRect(x - 2, y + 22, 4, 6);
+                // Garda
+                this.ctx.fillStyle = '#ffd700';
+                this.ctx.fillRect(x - 5, y + 19, 10, 3);
+                break;
+            case 'armor':
+                // Zbroja (korpus)
+                this.ctx.fillStyle = '#696969';
+                this.ctx.fillRect(x - 4, y + 5, 8, 12);
+                // Ramiona
+                this.ctx.fillRect(x - 6, y + 7, 2, 8);
+                this.ctx.fillRect(x + 4, y + 7, 2, 8);
+                // Świecenie
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x - 3, y + 8);
+                this.ctx.lineTo(x + 3, y + 8);
+                this.ctx.stroke();
+                break;
+            case 'staff':
+                // Kij
+                this.ctx.strokeStyle = '#8b4513';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(x, y + 26);
+                this.ctx.stroke();
+                // Top (magiczna sfera)
+                this.ctx.fillStyle = '#9370db';
+                this.ctx.beginPath();
+                this.ctx.arc(x, y - 2, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+                // Blask magii
+                this.ctx.strokeStyle = 'rgba(147, 112, 219, 0.6)';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.arc(x, y - 2, 5, 0, Math.PI * 2);
+                this.ctx.stroke();
+                break;
+            case 'bow':
+                // Łuk
+                this.ctx.strokeStyle = '#8b6f47';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(x, y + 12, 6, 0, Math.PI * 2);
+                this.ctx.stroke();
+                // Struna
+                this.ctx.strokeStyle = '#d4a574';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y + 6);
+                this.ctx.lineTo(x, y + 18);
+                this.ctx.stroke();
+                // Strzała
+                this.ctx.strokeStyle = '#ff4500';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x - 5, y + 12);
+                this.ctx.lineTo(x + 3, y + 12);
+                this.ctx.stroke();
+                break;
         }
     }
 
@@ -4812,6 +4946,81 @@ class Game {
         this.draw();
 
         this._gameLoopId = requestAnimationFrame(() => this.gameLoop());
+    }
+
+    // ============================================
+    // MULTIPLAYER - Firebase
+    // ============================================
+
+    initMultiplayer() {
+        if (!this.player) return;
+        
+        // Ustaw listener dla innych graczy
+        database.ref('players').on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            
+            // Usuń graczy którzy się rozłączyli
+            for (let id in this.otherPlayers) {
+                if (!data[id] || id === playerId) {
+                    delete this.otherPlayers[id];
+                }
+            }
+            
+            // Zaktualizuj pozostałych graczy
+            for (let id in data) {
+                if (id !== playerId) {
+                    this.otherPlayers[id] = data[id];
+                }
+            }
+        });
+    }
+
+    syncPlayerToFirebase() {
+        if (!this.player) return;
+        
+        const playerData = {
+            x: this.player.x,
+            y: this.player.y,
+            name: this.player.name || 'Gracz',
+            level: this.player.level || 1,
+            className: this.player.className || 'Wojownik',
+            timestamp: Date.now()
+        };
+        
+        database.ref('players/' + playerId).set(playerData);
+    }
+
+    drawOtherPlayers() {
+        for (let id in this.otherPlayers) {
+            const other = this.otherPlayers[id];
+            if (!other) continue;
+            
+            // Rysuj drugiego gracza na mapie
+            const centerX = other.x + this.player.width / 2;
+            const centerY = other.y + this.player.height / 2;
+            
+            // Cień
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            this.ctx.beginPath();
+            this.ctx.ellipse(centerX, centerY + 12, 10, 4, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Głowa
+            this.ctx.fillStyle = '#d4a574';
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY - 8, 5, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Ciało
+            this.ctx.fillStyle = '#c04000';
+            this.ctx.fillRect(centerX - 7, centerY - 2, 14, 12);
+            
+            // Nazwa nad graczem
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.font = 'bold 10px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(other.name || 'Gracz', centerX, centerY - 18);
+        }
     }
 }
 
