@@ -943,6 +943,123 @@ canvas {
     background: rgba(0,0,0,0.7);
     z-index: 3000;
 }
+
+/* Chat Panel */
+.chat-panel {
+    position: fixed;
+    right: 10px;
+    bottom: 10px;
+    width: 320px;
+    height: 280px;
+    background: linear-gradient(180deg, rgba(20, 16, 12, 0.95), rgba(12, 10, 8, 0.98));
+    border: 2px solid var(--bg-gold);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    z-index: 900;
+}
+
+.chat-header {
+    background: linear-gradient(135deg, #d4af37, #b8941f);
+    color: #1b130d;
+    font-weight: bold;
+    padding: 8px 12px;
+    border-radius: 6px 6px 0 0;
+    font-size: 0.95rem;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.chat-message {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #e8e4d8;
+    word-wrap: break-word;
+}
+
+.chat-message .chat-sender {
+    color: #ffd77a;
+    font-weight: bold;
+    margin-right: 6px;
+}
+
+.chat-message .chat-time {
+    color: #9ea0a6;
+    font-size: 0.75rem;
+    margin-left: 6px;
+}
+
+.chat-input-wrapper {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0 0 6px 6px;
+}
+
+.chat-input-wrapper input {
+    flex: 1;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--bg-gold);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.chat-input-wrapper input:focus {
+    outline: none;
+    border-color: #ffb85f;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.chat-input-wrapper button {
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #ff9f3f, #ff6633);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.chat-input-wrapper button:hover {
+    background: linear-gradient(135deg, #ffb85f, #ff7f4d);
+    transform: scale(1.05);
+}
+
+.chat-input-wrapper button:active {
+    transform: scale(0.95);
+}
+
+/* Chat messages scrollbar */
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: var(--bg-gold);
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #ffb85f;
+}
 .loading-box {
     background: linear-gradient(180deg,#1b1410,#2c1f18);
     border: 3px solid #d4af37;

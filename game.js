@@ -5175,6 +5175,85 @@ function handleLogout() {
 }
 
 // ============================================
+// CHAT SYSTEM
+// ============================================
+
+function initChat() {
+    const chatInput = document.getElementById('chatInput');
+    const chatSendBtn = document.getElementById('chatSendBtn');
+    const chatMessages = document.getElementById('chatMessages');
+    
+    // Send message on button click
+    chatSendBtn.addEventListener('click', sendChatMessage);
+    
+    // Send message on Enter key
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendChatMessage();
+        }
+    });
+    
+    // Listen to chat messages from Firebase
+    database.ref('chat/messages').orderByChild('timestamp').limitToLast(50).on('child_added', (snapshot) => {
+        const message = snapshot.val();
+        displayChatMessage(message);
+    });
+}
+
+function sendChatMessage() {
+    const chatInput = document.getElementById('chatInput');
+    const messageText = chatInput.value.trim();
+    
+    if (!messageText || !currentUser) return;
+    
+    const message = {
+        uid: currentUser.uid,
+        sender: game?.selectedChar?.name || currentUser.email.split('@')[0],
+        text: messageText,
+        timestamp: Date.now()
+    };
+    
+    database.ref('chat/messages').push(message).then(() => {
+        chatInput.value = '';
+        console.log('[Chat] Message sent');
+    }).catch(error => {
+        console.error('[Chat] Send error:', error);
+    });
+}
+
+function displayChatMessage(message) {
+    const chatMessages = document.getElementById('chatMessages');
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'chat-message';
+    
+    const time = new Date(message.timestamp).toLocaleTimeString('pl-PL', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    messageDiv.innerHTML = `
+        <span class="chat-sender">${message.sender}:</span>
+        <span class="chat-text">${escapeHtml(message.text)}</span>
+        <span class="chat-time">${time}</span>
+    `;
+    
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // Keep only last 50 messages in DOM
+    while (chatMessages.children.length > 50) {
+        chatMessages.removeChild(chatMessages.firstChild);
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================
 // INICJALIZACJA
 // ============================================
 
@@ -5182,4 +5261,5 @@ let game;
 
 window.addEventListener('load', () => {
     game = new Game();
+    initChat();
 });
