@@ -173,8 +173,6 @@ body {
 .link-btn:hover {
     color: #79d8ff;
 }
-    letter-spacing: 0.5px;
-}
 
 .menu-btn:hover {
     background: linear-gradient(135deg, #ffb463, #ff7a4d);
@@ -985,6 +983,18 @@ canvas {
     font-size: 0.85rem;
     color: #e8e4d8;
     word-wrap: break-word;
+}
+
+.chat-message.chat-system {
+    background: rgba(212, 175, 55, 0.1);
+    border-left: 3px solid var(--bg-gold);
+    font-style: italic;
+    color: #9ea0a6;
+    text-align: center;
+}
+
+.chat-message.chat-system .chat-text {
+    color: #b8941f;
 }
 
 .chat-message .chat-sender {

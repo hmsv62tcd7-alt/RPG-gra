@@ -1777,6 +1777,8 @@ class Game {
         this.gameRunning = true;
         // Initialize multiplayer after player is fully ready
         this.initMultiplayer();
+        // Send system message to chat
+        sendSystemMessage(`${slot.name} zalogował się do gry`);
         // start/restart autosave loop
         if (this._autosaveInterval) clearInterval(this._autosaveInterval);
         this._autosaveInterval = setInterval(() => {
@@ -5158,6 +5160,11 @@ function handleRegister() {
 }
 
 function handleLogout() {
+    // Send system message before logout
+    if (game?.selectedChar?.name) {
+        sendSystemMessage(`${game.selectedChar.name} wylogował się z gry`);
+    }
+    
     // Usuń gracza z bazy przed wylogowaniem
     if (currentUser) {
         database.ref('users/' + currentUser.uid + '/player').remove().then(() => {
@@ -5225,18 +5232,25 @@ function displayChatMessage(message) {
     const chatMessages = document.getElementById('chatMessages');
     
     const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message';
+    messageDiv.className = message.type === 'system' ? 'chat-message chat-system' : 'chat-message';
     
     const time = new Date(message.timestamp).toLocaleTimeString('pl-PL', { 
         hour: '2-digit', 
         minute: '2-digit' 
     });
     
-    messageDiv.innerHTML = `
-        <span class="chat-sender">${message.sender}:</span>
-        <span class="chat-text">${escapeHtml(message.text)}</span>
-        <span class="chat-time">${time}</span>
-    `;
+    if (message.type === 'system') {
+        messageDiv.innerHTML = `
+            <span class="chat-text">${escapeHtml(message.text)}</span>
+            <span class="chat-time">${time}</span>
+        `;
+    } else {
+        messageDiv.innerHTML = `
+            <span class="chat-sender">${message.sender}:</span>
+            <span class="chat-text">${escapeHtml(message.text)}</span>
+            <span class="chat-time">${time}</span>
+        `;
+    }
     
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -5245,6 +5259,18 @@ function displayChatMessage(message) {
     while (chatMessages.children.length > 50) {
         chatMessages.removeChild(chatMessages.firstChild);
     }
+}
+
+function sendSystemMessage(text) {
+    const message = {
+        type: 'system',
+        text: text,
+        timestamp: Date.now()
+    };
+    
+    database.ref('chat/messages').push(message).catch(error => {
+        console.error('[Chat] System message error:', error);
+    });
 }
 
 function escapeHtml(text) {
