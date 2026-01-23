@@ -4111,9 +4111,16 @@ class Game {
     // ============================================
 
     draw() {
+        if (!Number.isFinite(this.currentMap)) this.currentMap = 1;
+        if (this.player) {
+            if (!Number.isFinite(this.player.x)) this.player.x = MAP_WIDTH / 2;
+            if (!Number.isFinite(this.player.y)) this.player.y = MAP_HEIGHT / 2;
+            if (!this.player.width) this.player.width = CONFIG.PLAYER_SIZE;
+            if (!this.player.height) this.player.height = CONFIG.PLAYER_SIZE;
+        }
         // Czyszczenie canvas
         this.ctx.fillStyle = '#0a0a0a';
-        this.ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Zapisz stan kontekstu przed transformacją kamery
         this.ctx.save();
@@ -4123,15 +4130,15 @@ class Game {
 
         // --- Rysuj tło i planszę w zależności od currentMap ---
         if (this.currentMap === 1) {
-            // MAPA 1: WIOSKA
             this.drawMapGrass();
             this.drawVillage();
         } else if (this.currentMap === 2) {
-            // MAPA 2: WIELKIE MIASTO
             this.drawBigCity();
         } else if (this.currentMap === 3) {
-            // MAPA 3: WNĘTRZE ŻÓŁTEGO DOMU
             this.drawYellowHouseInterior();
+        } else {
+            // Bezpieczny fallback: zawsze rysuj trawę
+            this.drawMapGrass();
         }
         // ---
 
