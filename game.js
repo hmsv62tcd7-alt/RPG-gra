@@ -5213,9 +5213,11 @@ function handleLogout() {
 // ============================================
 
 let versionListener = null;
+let lastNotifiedVersion = localStorage.getItem('lastNotifiedVersion') || null;
 
 function initUpdateCheck() {
     console.log('[Update] Initializing real-time version listener');
+    console.log('[Update] Last notified version:', lastNotifiedVersion);
     
     // Nasłuchuj zmian wersji w real-time
     versionListener = database.ref('system/version').on('value', (snapshot) => {
@@ -5223,10 +5225,13 @@ function initUpdateCheck() {
         console.log('[Update] Version check - Latest:', latestVersion, 'Current:', GAME_VERSION);
         
         // Sprawdzaj tylko jeśli jesteś w grze
-        if (isInGame && latestVersion && latestVersion !== GAME_VERSION) {
+        if (isInGame && latestVersion && latestVersion !== GAME_VERSION && latestVersion !== lastNotifiedVersion) {
             console.log('[Update] 🔔 NOWA WERSJA DOSTĘPNA!', latestVersion);
-            // Wyślij wiadomość aktualizacji
+            // Wyślij wiadomość aktualizacji TYLKO RAZ
             sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
+            // Zapamiętaj że wysłaliśmy powiadomienie o tej wersji
+            lastNotifiedVersion = latestVersion;
+            localStorage.setItem('lastNotifiedVersion', latestVersion);
         }
     }, (error) => {
         console.error('[Update] Error setting up version listener:', error);
