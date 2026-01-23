@@ -2191,6 +2191,12 @@ class Game {
     // ============================================
 
     handleKeyDown(e) {
+        // Jeśli czat jest aktywny, nie obsługuj skrótów klawiszowych
+        const chatInput = document.getElementById('chatInput');
+        if (chatInput && document.activeElement === chatInput) {
+            return; // Nie obsługuj skrótów gdy pisze się na czacie
+        }
+
         this.keys[e.key.toUpperCase()] = true;
         this.keys[e.key.toLowerCase()] = true;
         this.keys[e.key] = true;
