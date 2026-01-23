@@ -1806,6 +1806,8 @@ class Game {
         this.initMultiplayer();
         // Send system message to chat
         sendSystemMessage(`${slot.name} zalogował się do gry`);
+        // Inicjalizuj sprawdzanie aktualizacji (tylko gdy gracz jest w grze)
+        initUpdateCheck();
         // start/restart autosave loop
         if (this._autosaveInterval) clearInterval(this._autosaveInterval);
         this._autosaveInterval = setInterval(() => {
@@ -5288,9 +5290,6 @@ function initChat() {
         const message = snapshot.val();
         displayChatMessage(message);
     });
-    
-    // Inicjalizuj sprawdzanie aktualizacji
-    initUpdateCheck();
 }
 
 function sendChatMessage() {
