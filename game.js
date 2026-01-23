@@ -1540,6 +1540,10 @@ class Game {
         this.cameraOffsetY = CONFIG.CANVAS_HEIGHT / 2;
         this.cameraSmooth = 0.1; // Smooth camera follow (0-1, higher = faster)
 
+        // Dynamiczny rozmiar canvasu dopasowany do kontenera gry
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+
         this.setupEventListeners();
         this.initToastSystem();
     }
@@ -2346,6 +2350,18 @@ class Game {
         this.updateHUD();
     }
 
+    resizeCanvas() {
+        const container = document.getElementById('gameContainer');
+        const rect = container ? container.getBoundingClientRect() : { width: CONFIG.CANVAS_WIDTH, height: CONFIG.CANVAS_HEIGHT };
+        // Fallbacky na wypadek dziwnych wartości
+        const safeWidth = Number.isFinite(rect.width) && rect.width > 0 ? rect.width : CONFIG.CANVAS_WIDTH;
+        const safeHeight = Number.isFinite(rect.height) && rect.height > 0 ? rect.height : CONFIG.CANVAS_HEIGHT;
+        this.canvas.width = safeWidth;
+        this.canvas.height = safeHeight;
+        this.cameraOffsetX = this.canvas.width / 2;
+        this.cameraOffsetY = this.canvas.height / 2;
+    }
+
     initGame() {
         // Mapuj klasy z CSS na ClassType enum
         const classMap = {
@@ -3036,6 +3052,11 @@ class Game {
     // ============================================
 
     update() {
+        if (!this.player) return;
+        if (!Number.isFinite(this.player.x) || !Number.isFinite(this.player.y)) {
+            this.player.x = MAP_WIDTH / 2;
+            this.player.y = MAP_HEIGHT / 2;
+        }
         this.updatePlayerMovement();
         this.applyMovementWithCollisions();
         this.updateCamera();
@@ -3158,9 +3179,21 @@ class Game {
     }
 
     updateCamera() {
+        if (!this.player) return;
+
+        let px = this.player.x;
+        let py = this.player.y;
+        if (!Number.isFinite(px) || !Number.isFinite(py)) {
+            px = MAP_WIDTH / 2;
+            py = MAP_HEIGHT / 2;
+        }
+
         // Docelowa pozycja kamery (centrowuje gracza na ekranie)
-        const targetCameraX = this.player.x + this.player.width / 2 - this.cameraOffsetX;
-        const targetCameraY = this.player.y + this.player.height / 2 - this.cameraOffsetY;
+        let targetCameraX = px + this.player.width / 2 - this.cameraOffsetX;
+        let targetCameraY = py + this.player.height / 2 - this.cameraOffsetY;
+
+        if (!Number.isFinite(targetCameraX)) targetCameraX = 0;
+        if (!Number.isFinite(targetCameraY)) targetCameraY = 0;
 
         // Smooth camera following
         this.cameraX += (targetCameraX - this.cameraX) * this.cameraSmooth;
@@ -3170,6 +3203,9 @@ class Game {
         const bounds = this.getCurrentMapBounds();
         this.cameraX = Math.max(0, Math.min(this.cameraX, bounds.width - CONFIG.CANVAS_WIDTH));
         this.cameraY = Math.max(0, Math.min(this.cameraY, bounds.height - CONFIG.CANVAS_HEIGHT));
+
+        if (!Number.isFinite(this.cameraX)) this.cameraX = 0;
+        if (!Number.isFinite(this.cameraY)) this.cameraY = 0;
     }
 
     checkCollisions() {
@@ -4165,6 +4201,11 @@ class Game {
 
         // Przywróć stan kontekstu (usuń transformację)
         this.ctx.restore();
+
+        // Debug overlay na głównym canvasie (poza transformacją kamery)
+        this.ctx.fillStyle = 'white';
+        this.ctx.font = '12px Arial';
+        this.ctx.fillText(`cam:${Math.round(this.cameraX)},${Math.round(this.cameraY)} player:${Math.round(this.player?.x || 0)},${Math.round(this.player?.y || 0)} canvas:${this.canvas.width}x${this.canvas.height}` , 20, 20);
 
         // Info (rysuj poza transformacją, aby być na górze)
         this.drawInfo();
