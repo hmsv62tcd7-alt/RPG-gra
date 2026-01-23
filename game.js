@@ -5269,6 +5269,8 @@ function sendSystemMessage(text) {
     
     database.ref('chat/messages').push(message).then(() => {
         console.log('[Chat] System message sent successfully');
+        // Bezpośrednio wyświetl wiadomość (bo listener może nie trigger'ować)
+        displayChatMessage(message);
     }).catch(error => {
         console.error('[Chat] System message error:', error);
     });
