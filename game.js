@@ -5234,23 +5234,25 @@ let updateNotificationSent = false;
 
 function initUpdateCheck() {
     console.log('[Update] Initializing version check');
+    alert('initUpdateCheck wywołane! isInGame: ' + isInGame + ', GAME_VERSION: ' + GAME_VERSION);
     
     // Nasłuchuj zmian wersji w czasie rzeczywistym
     database.ref('system/version').on('value', (snapshot) => {
         const latestVersion = snapshot.val();
         console.log('[Update] Version check:', latestVersion, 'vs', GAME_VERSION, 'isInGame:', isInGame);
         
-        // DEBUG - pokaż alert
-        // alert(`Wersja: ${latestVersion} vs ${GAME_VERSION}, isInGame: ${isInGame}, sent: ${updateNotificationSent}`);
+        alert('Firebase wersja: ' + latestVersion + ', Gra: ' + GAME_VERSION + ', isInGame: ' + isInGame + ', sent: ' + updateNotificationSent);
         
         // Jeśli wersja jest inna, wyślij wiadomość (tylko raz w sesji)
         if (isInGame && latestVersion && latestVersion !== GAME_VERSION && !updateNotificationSent) {
+            alert('WYSYLAM WIADOMOSC NA CZAT!');
             console.log('[Update] WYSYLAM WIADOMOSC!');
             sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
             updateNotificationSent = true;
         }
     }, (error) => {
         console.error('[Update] Error checking version:', error);
+        alert('Błąd sprawdzania wersji: ' + error);
     });
 }
 
