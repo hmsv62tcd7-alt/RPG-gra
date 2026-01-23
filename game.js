@@ -5109,29 +5109,41 @@ function showMainMenu() {
 }
 
 function setupAuthListeners() {
+    console.log('[Auth] Setting up auth listeners');
     const loginBtn = document.getElementById('loginBtn');
     const registerBtn = document.getElementById('registerBtn');
     const showRegisterBtn = document.getElementById('showRegisterBtn');
     const showLoginBtn = document.getElementById('showLoginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     
-    loginBtn.addEventListener('click', handleLogin);
-    registerBtn.addEventListener('click', handleRegister);
-    showRegisterBtn.addEventListener('click', () => {
-        document.getElementById('loginForm').classList.add('hidden');
-        document.getElementById('registerForm').classList.remove('hidden');
-    });
-    showLoginBtn.addEventListener('click', () => {
-        document.getElementById('registerForm').classList.add('hidden');
-        document.getElementById('loginForm').classList.remove('hidden');
-    });
-    logoutBtn.addEventListener('click', handleLogout);
+    console.log('[Auth] Elements:', { loginBtn, registerBtn, showRegisterBtn, showLoginBtn, logoutBtn });
+    
+    if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+    if (registerBtn) registerBtn.addEventListener('click', handleRegister);
+    if (showRegisterBtn) {
+        showRegisterBtn.addEventListener('click', () => {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+        });
+    }
+    if (showLoginBtn) {
+        showLoginBtn.addEventListener('click', () => {
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        });
+    }
+    if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+    
+    console.log('[Auth] Listeners attached');
 }
 
 function handleLogin() {
+    console.log('[Auth] handleLogin called');
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const errorEl = document.getElementById('loginError');
+    
+    console.log('[Auth] Login attempt:', email);
     
     if (!email || !password) {
         errorEl.textContent = 'Wpisz email i hasło!';
