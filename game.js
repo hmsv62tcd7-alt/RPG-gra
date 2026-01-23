@@ -5139,6 +5139,7 @@ function setupAuthListeners() {
 
 function handleLogin() {
     console.log('[Auth] handleLogin called');
+    alert('handleLogin wywołane!'); // DEBUG
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const errorEl = document.getElementById('loginError');
@@ -5239,7 +5240,7 @@ function initUpdateCheck() {
         
         // Jeśli wersja jest inna, wyślij wiadomość (tylko raz w sesji)
         if (isInGame && latestVersion && latestVersion !== GAME_VERSION && !updateNotificationSent) {
-            console.log('[Update] 🔔 NOWA WERSJA DOSTĘPNA!', latestVersion);
+            console.log('[Update] NOWA WERSJA DOSTEPNA!', latestVersion);
             sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
             updateNotificationSent = true;
         }
@@ -5356,7 +5357,13 @@ function escapeHtml(text) {
 let game;
 
 window.addEventListener('load', () => {
+    console.log('[Init] Page loaded, initializing...');
     game = new Game();
     initChat();
-    setupAuthListeners();
+    
+    // Poczekaj na inicjalizację Firebase auth
+    setTimeout(() => {
+        setupAuthListeners();
+        console.log('[Init] Setup complete');
+    }, 500);
 });
