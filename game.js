@@ -5232,17 +5232,25 @@ let updateNotificationSent = false;
 
 function initUpdateCheck() {
     console.log('[Update] Initializing version check');
+    console.log('[Update] isInGame:', isInGame, 'GAME_VERSION:', GAME_VERSION);
     
-    // Sprawdź wersję tylko raz na początku sesji
-    database.ref('system/version').once('value', (snapshot) => {
+    // Nasłuchuj zmian wersji w czasie rzeczywistym
+    database.ref('system/version').on('value', (snapshot) => {
         const latestVersion = snapshot.val();
-        console.log('[Update] Initial check - Latest:', latestVersion, 'Current:', GAME_VERSION);
+        console.log('[Update] Version changed - Latest:', latestVersion, 'Current:', GAME_VERSION);
+        console.log('[Update] isInGame:', isInGame, 'updateNotificationSent:', updateNotificationSent);
         
         // Jeśli wersja jest inna, wyślij wiadomość (tylko raz w sesji)
         if (isInGame && latestVersion && latestVersion !== GAME_VERSION && !updateNotificationSent) {
-            console.log('[Update] NOWA WERSJA DOSTEPNA!', latestVersion);
+            console.log('[Update] WYSYLAM WIADOMOSC O AKTUALIZACJI!');
             sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
             updateNotificationSent = true;
+        } else {
+            console.log('[Update] Nie wysylam bo:', 
+                'isInGame:', isInGame, 
+                'latestVersion:', latestVersion,
+                'GAME_VERSION:', GAME_VERSION,
+                'updateNotificationSent:', updateNotificationSent);
         }
     }, (error) => {
         console.error('[Update] Error checking version:', error);
