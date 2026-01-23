@@ -75,8 +75,8 @@
             </div>
         </div>
 
-        <!-- INVENTORY PANEL -->
-        <div id="inventoryPanel" class="inventory-panel">
+        <!-- INVENTORY WINDOW (Torba) -->
+        <div id="inventoryWindow" class="inventory-panel">
             <div class="panel-header">
                 <div class="inventory-title">🎒 Torba</div>
                 <button id="closeInventoryBtn" class="close-btn">✕</button>
@@ -84,10 +84,10 @@
             <div id="inventoryGrid" class="inventory-grid"></div>
         </div>
 
-        <!-- EQUIPMENT PANEL -->
-        <div id="equipmentPanel" class="equipment-panel">
+        <!-- EQUIPMENT WINDOW (Ekwipunek) -->
+        <div id="equipmentWindow" class="equipment-panel">
             <div class="panel-header">
-                <div class="equipment-title">🎒 Torba</div>
+                <div class="equipment-title">🛡️ Ekwipunek</div>
                 <button id="closeEquipmentBtn" class="close-btn">✕</button>
             </div>
             
@@ -145,7 +145,7 @@
                 </div>
                 
                 <!-- Stats -->
-                <div class="equipment-stats">
+                <div class="equipment-stats" id="equipmentStats">
                     <div class="stat-row">
                         <span class="stat-label">ATK:</span>
                         <span class="stat-value" id="eqATK">0</span>
@@ -165,6 +165,14 @@
                     <div class="stat-row">
                         <span class="stat-label">ZRN:</span>
                         <span class="stat-value" id="eqZRN">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">VIT:</span>
+                        <span class="stat-value" id="eqVIT">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">HP:</span>
+                        <span class="stat-value" id="eqHP">0</span>
                     </div>
                 </div>
             </div>

@@ -82,6 +82,82 @@ auth.onAuthStateChanged((user) => {
 });
 
 // ============================================
+// SYSTEM STATYSTYK KLAS
+// ============================================
+
+const ClassType = {
+    MAG: 'mag',
+    WOJ: 'woj',
+    HUNTER: 'hunter'
+};
+
+// Definicje statystyk dla każdej klasy
+const CLASS_STATS = {
+    [ClassType.MAG]: {
+        start: { str: 1, int: 3, zrn: 2, vit: 5, bonusHp: 0 },
+        gains: { str: 1, int: 2, zrn: 1, vit: 1, bonusHp: 0 }
+    },
+    [ClassType.WOJ]: {
+        start: { str: 3, int: 1, zrn: 2, vit: 9, bonusHp: 0 },
+        gains: { str: 2, int: 1, zrn: 1, vit: 1, bonusHp: 5 }
+    },
+    [ClassType.HUNTER]: {
+        start: { str: 1, int: 1, zrn: 3, vit: 7, bonusHp: 0 },
+        gains: { str: 1, int: 1, zrn: 2, vit: 1, bonusHp: 1 }
+    }
+};
+
+// Struktura statystyk
+class Stats {
+    constructor(str = 0, int = 0, zrn = 0, vit = 0, bonusHp = 0, hp = 0) {
+        this.str = str;
+        this.int = int;
+        this.zrn = zrn;
+        this.vit = vit;
+        this.bonusHp = bonusHp;
+        this.hp = hp;
+    }
+}
+
+// Funkcja obliczająca staty na dany level
+function getStats(classType, level) {
+    if (!CLASS_STATS[classType] || level < 1) {
+        console.error('Invalid class or level:', classType, level);
+        return new Stats();
+    }
+    
+    const classData = CLASS_STATS[classType];
+    const levelMultiplier = level - 1;
+    
+    const str = classData.start.str + classData.gains.str * levelMultiplier;
+    const int = classData.start.int + classData.gains.int * levelMultiplier;
+    const zrn = classData.start.zrn + classData.gains.zrn * levelMultiplier;
+    const vit = classData.start.vit + classData.gains.vit * levelMultiplier;
+    const bonusHp = classData.start.bonusHp + classData.gains.bonusHp * levelMultiplier;
+    const hp = vit * 10 + bonusHp;
+    
+    return new Stats(str, int, zrn, vit, bonusHp, hp);
+}
+
+// TESTY - Sprawdzenie obliczania statystyk
+console.log('[Stats] === TESTY SYSTEMU STATYSTYK ===');
+const magL1 = getStats(ClassType.MAG, 1);
+const magL2 = getStats(ClassType.MAG, 2);
+console.log(`[Stats] MAG lvl 1: STR=${magL1.str}, INT=${magL1.int}, ZRN=${magL1.zrn}, VIT=${magL1.vit}, HP=${magL1.hp} (oczekiwane: 50)`);
+console.log(`[Stats] MAG lvl 2: STR=${magL2.str}, INT=${magL2.int}, ZRN=${magL2.zrn}, VIT=${magL2.vit}, HP=${magL2.hp} (oczekiwane: 60)`);
+
+const wojL1 = getStats(ClassType.WOJ, 1);
+const wojL2 = getStats(ClassType.WOJ, 2);
+console.log(`[Stats] WOJ lvl 1: STR=${wojL1.str}, INT=${wojL1.int}, ZRN=${wojL1.zrn}, VIT=${wojL1.vit}, HP=${wojL1.hp} (oczekiwane: 90)`);
+console.log(`[Stats] WOJ lvl 2: STR=${wojL2.str}, INT=${wojL2.int}, ZRN=${wojL2.zrn}, VIT=${wojL2.vit}, HP=${wojL2.hp} (oczekiwane: 105)`);
+
+const hunterL1 = getStats(ClassType.HUNTER, 1);
+const hunterL2 = getStats(ClassType.HUNTER, 2);
+console.log(`[Stats] HUNTER lvl 1: STR=${hunterL1.str}, INT=${hunterL1.int}, ZRN=${hunterL1.zrn}, VIT=${hunterL1.vit}, HP=${hunterL1.hp} (oczekiwane: 70)`);
+console.log(`[Stats] HUNTER lvl 2: STR=${hunterL2.str}, INT=${hunterL2.int}, ZRN=${hunterL2.zrn}, VIT=${hunterL2.vit}, HP=${hunterL2.hp} (oczekiwane: 81)`);
+console.log('[Stats] === KONIEC TESTÓW ===');
+
+// ============================================
 // KLASY
 // ============================================
 
@@ -161,21 +237,28 @@ class Inventory {
 }
 
 class Player {
-    constructor(x, y) {
+    constructor(x, y, classType = ClassType.WOJ, level = 1) {
         this.x = x;
         this.y = y;
         this.width = CONFIG.PLAYER_SIZE;
         this.height = CONFIG.PLAYER_SIZE;
         this.speed = CONFIG.PLAYER_SPEED;
-        this.maxHp = 100;
-        this.hp = 100;
-        this.velocityX = 0;
-        this.velocityY = 0;
         
-        // System exp/level
-        this.level = 1;
+        // Klasa i level
+        this.classType = classType;
+        this.level = level;
+        
+        // Staty z systemu
+        this.stats = getStats(classType, level);
+        this.maxHp = this.stats.hp;
+        this.hp = this.stats.hp;
+        
+        // System exp
         this.exp = 0;
         this.maxExp = 100;
+        
+        this.velocityX = 0;
+        this.velocityY = 0;
         
         // Inventory
         this.inventory = new Inventory(20);
@@ -1362,21 +1445,21 @@ class Game {
         
         if (closeInventoryBtn) {
             closeInventoryBtn.addEventListener('click', () => {
-                const invPanel = document.getElementById('inventoryPanel');
+                const invPanel = document.getElementById('inventoryWindow');
                 if (invPanel) invPanel.classList.remove('visible');
             });
         }
         
         if (closeEquipmentBtn) {
             closeEquipmentBtn.addEventListener('click', () => {
-                const eqPanel = document.getElementById('equipmentPanel');
+                const eqPanel = document.getElementById('equipmentWindow');
                 if (eqPanel) eqPanel.classList.remove('visible');
             });
         }
 
         // Draggable panels (inventory, equipment)
-        this.makePanelDraggable('inventoryPanel');
-        this.makePanelDraggable('equipmentPanel');
+        this.makePanelDraggable('inventoryWindow');
+        this.makePanelDraggable('equipmentWindow');
 
         // Dialogue continue button
         const dialogueContinue = document.getElementById('dialogueContinue');
@@ -1486,7 +1569,7 @@ class Game {
         if (npc.type === 'vendor') {
             // Otwórz sklep
             setTimeout(() => {
-                const eqPanel = document.getElementById('equipmentPanel');
+                const eqPanel = document.getElementById('equipmentWindow');
                 if (eqPanel) {
                     // Przejdź na tab sklepu
                     document.querySelectorAll('.equipment-tab').forEach(tab => tab.classList.remove('active'));
@@ -1869,16 +1952,11 @@ class Game {
         const race = this.selectedChar.race || 'Human';
         this.player.className = cls;
         this.player.race = race;
-        if (cls === 'Wojownik') {
-            this.player.maxHp = 140; this.player.hp = this.player.maxHp; this.player.speed = 3;
-        } else if (cls === 'Hunter') {
-            this.player.maxHp = 110; this.player.hp = this.player.maxHp; this.player.speed = 4;
-        } else if (cls === 'Mag') {
-            this.player.maxHp = 80; this.player.hp = this.player.maxHp; this.player.speed = 3.2;
-        }
-        // Bonus dla Orków
+        // Staty są już wyliczone w konstruktorze Player na podstawie classType i level
+        // Tylko dodaj rasę i bonus HP jeśli to Orc
         if (race === 'Orc') {
             this.player.maxHp = Math.floor(this.player.maxHp * 1.2);
+            this.player.stats.bonusHp = this.player.maxHp - (this.player.stats.vit * 10);
             this.player.hp = this.player.maxHp;
         }
         // update HUD immediately
@@ -1886,8 +1964,18 @@ class Game {
     }
 
     initGame() {
-        // Utwórz gracza
-        this.player = new Player(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2);
+        // Mapuj klasy z CSS na ClassType enum
+        const classMap = {
+            'Mag': ClassType.MAG,
+            'Wojownik': ClassType.WOJ,
+            'Hunter': ClassType.HUNTER
+        };
+        
+        const classType = classMap[this.selectedChar?.className || 'Wojownik'] || ClassType.WOJ;
+        const level = this.selectedChar?.level || 1;
+        
+        // Utwórz gracza z systemem statystyk
+        this.player = new Player(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2, classType, level);
         this.player.gold = 500;  // Starter gold
 
         // Utwórz misje (race-specific)
@@ -2050,6 +2138,15 @@ class Game {
         this.player.x = state.x !== undefined ? state.x : CONFIG.CANVAS_WIDTH / 2;
         this.player.y = state.y !== undefined ? state.y : CONFIG.CANVAS_HEIGHT / 2;
 
+        // Przywróć staty na podstawie poziomu
+        if (this.player.level > 1) {
+            this.player.stats = getStats(this.player.classType, this.player.level);
+            this.player.maxHp = this.player.stats.hp;
+            if (this.player.hp > this.player.maxHp) {
+                this.player.hp = this.player.maxHp;
+            }
+        }
+
         // Restore inventory
         if (state.inventory) {
             this.player.inventory.slots = state.inventory.map(itemData => {
@@ -2210,7 +2307,7 @@ class Game {
 
         // Obsługa inventoryu (klawisz I)
         if (key === 'i' || key === 'I') {
-            const invPanel = document.getElementById('inventoryPanel');
+            const invPanel = document.getElementById('inventoryWindow');
             if (invPanel) {
                 const nowVisible = invPanel.classList.toggle('visible');
                 if (nowVisible && !invPanel.dataset.dragged) {
@@ -2221,7 +2318,7 @@ class Game {
 
         // Obsługa ekwipunku (klawisz C)
         if (key === 'c' || key === 'C') {
-            const eqPanel = document.getElementById('equipmentPanel');
+            const eqPanel = document.getElementById('equipmentWindow');
             if (eqPanel) {
                 const nowVisible = eqPanel.classList.toggle('visible');
                 if (nowVisible && !eqPanel.dataset.dragged) {
@@ -2854,6 +2951,9 @@ class Game {
 
         // Update inventory display
         this.updateInventoryDisplay();
+        
+        // Update stats in equipment panel
+        this.updateEquipmentStatsUI();
 
         // Update quest panel
         this.updateQuestPanel();
@@ -2894,7 +2994,7 @@ class Game {
     }
 
     updateEquipmentDisplay() {
-        const eqPanel = document.getElementById('equipmentPanel');
+        const eqPanel = document.getElementById('equipmentWindow');
         if (!eqPanel) return;
         
         // Map slot types to emojis
@@ -2938,12 +3038,41 @@ class Game {
             };
         });
         
-        // Update stats
+        // Update stats in equipment panel
         document.getElementById('eqATK').textContent = this.player.equipmentATK;
         document.getElementById('eqDEF').textContent = this.player.equipmentDEF;
         
+        // Update stats in equipment panel
+        this.updateEquipmentStatsUI();
+        
         // Update shop display
         this.updateShopDisplay();
+    }
+
+    updateEquipmentStatsUI() {
+        // Zaktualizuj wszystkie staty w panelu ekwipunku
+        const stats = this.player.stats;
+        const eqAtkEl = document.getElementById('eqATK');
+        const eqDefEl = document.getElementById('eqDEF');
+        const eqStrEl = document.getElementById('eqSTR');
+        const eqIntEl = document.getElementById('eqINT');
+        const eqZrnEl = document.getElementById('eqZRN');
+        const eqVitEl = document.getElementById('eqVIT');
+        const eqHpEl = document.getElementById('eqHP');
+        
+        // Oblicz ATK i DEF na podstawie statów
+        // ATK = STR * 2 + INT * 1 + ZRN * 1 + bonusy ekwipunku
+        // DEF = VIT * 1 + STR * 1 + bonusy ekwipunku
+        const atk = stats.str * 2 + stats.int * 1 + stats.zrn * 1 + this.player.equipmentATK;
+        const def = stats.vit * 1 + stats.str * 1 + this.player.equipmentDEF;
+        
+        if (eqAtkEl) eqAtkEl.textContent = atk;
+        if (eqDefEl) eqDefEl.textContent = def;
+        if (eqStrEl) eqStrEl.textContent = stats.str;
+        if (eqIntEl) eqIntEl.textContent = stats.int;
+        if (eqZrnEl) eqZrnEl.textContent = stats.zrn;
+        if (eqVitEl) eqVitEl.textContent = stats.vit;
+        if (eqHpEl) eqHpEl.textContent = `${this.player.hp}/${this.player.maxHp}`;
     }
 
     updateShopDisplay() {
@@ -2980,7 +3109,7 @@ class Game {
 
     toggleEquipmentTab(tabName) {
         // Pokazuj/ukryj equipment panel
-        const eqPanel = document.getElementById('equipmentPanel');
+        const eqPanel = document.getElementById('equipmentWindow');
         if (eqPanel) {
             eqPanel.classList.toggle('visible');
         }

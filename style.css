@@ -732,7 +732,7 @@ canvas {
     padding: 15px;
     font-family: 'Manrope', 'Segoe UI', sans-serif;
     z-index: 1000;
-    max-height: 400px;
+    max-height: 550px;
     overflow-y: auto;
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.85), inset 0 0 10px rgba(212, 175, 55, 0.12);
     display: none;
@@ -1120,44 +1120,39 @@ canvas {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none'%3E%3Cpath d='M20 20c0-5.5 4.5-10 10-10h4c5.5 0 10 4.5 10 10v4c0 5.5-4.5 10-10 10h-4' stroke='%23dcdcdc' stroke-width='4'/%3E%3Cpath d='M28 30c-5.5 0-10 4.5-10 10v4c0 5.5 4.5 10 10 10h4c5.5 0 10-4.5 10-10v-4c0-5.5-4.5-10-10-10' stroke='%23bfbfbf' stroke-width='4'/%3E%3Ccircle cx='32' cy='18' r='3' fill='%23f0f0f5'/%3E%3Ccircle cx='32' cy='46' r='4' fill='%23f0f0f5'/%3E%3C/svg%3E");
 }
 
-.equipment-stats {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 8px 16px;
-    padding: 8px 16px 12px 16px;
+#equipmentStats {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 16px;
     border-top: 1px solid #8b7355;
     margin-top: 2px;
     width: 100%;
     box-sizing: border-box;
 }
 
-.stat-row {
-    display: contents;
+#equipmentStats .stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 20px;
+    line-height: 20px;
 }
 
-.stat-label {
+#equipmentStats .stat-label {
     color: #d4af37;
     font-weight: bold;
-    font-size: 0.8rem;
+    font-size: 14px;
     text-align: left;
-    justify-self: start;
 }
 
-.stat-value {
-    color: var(--bg-gold);
-    font-weight: bold;
-    font-size: 0.8rem;
-    text-align: right;
-    justify-self: end;
-}
-
-.stat-value {
+#equipmentStats .stat-value {
     color: #ffd777;
-    font-size: 0.85rem;
+    font-size: 14px;
     background: rgba(0, 0, 0, 0.3);
     padding: 2px 6px;
     border-radius: 3px;
-    min-width: 30px;
+    min-width: 40px;
     text-align: right;
 }
 
