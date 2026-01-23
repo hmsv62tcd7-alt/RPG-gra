@@ -2,6 +2,9 @@
 // RPG 2D - Gra w przeglądarce
 // ============================================
 
+// Wersja gry
+const GAME_VERSION = '1.0.0';
+
 // Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyB59jEt8zSwFwDdoND89LuT-s-xwl2vjKI",
@@ -20,6 +23,9 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const auth = firebase.auth();
 console.log('[Firebase] Firebase initialized, database:', database);
+
+// Flaga wskazująca czy jesteśmy w grze
+let isInGame = false;
 
 // KONFIGURACJA
 const CONFIG = {
@@ -1775,6 +1781,7 @@ class Game {
             this.acceptQuest(0);
         }
         this.gameRunning = true;
+        isInGame = true;  // Gracz wszedł do gry
         // Initialize multiplayer after player is fully ready
         this.initMultiplayer();
         // Send system message to chat
@@ -5176,12 +5183,36 @@ function handleLogout() {
         console.log('[Auth] Logged out successfully');
         currentUser = null;
         playerId = null;
+        isInGame = false;
     }).catch(error => {
         console.error('[Auth] Logout error:', error);
     });
 }
 
 // ============================================
+// SYSTEM AKTUALIZACJI
+// ============================================
+
+function initUpdateCheck() {
+    // Sprawdź wersję gry co 10 sekund, gdy gracz jest w grze
+    let updateCheckInterval = setInterval(() => {
+        if (!isInGame) return;
+        
+        database.ref('system/version').once('value', (snapshot) => {
+            const latestVersion = snapshot.val();
+            if (latestVersion && latestVersion !== GAME_VERSION) {
+                console.log('[Update] Nowa wersja dostępna:', latestVersion, 'aktualna:', GAME_VERSION);
+                // Wyślij wiadomość aktualizacji
+                sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
+            }
+        }).catch(error => {
+            console.error('[Update] Error checking version:', error);
+        });
+    }, 10000); // Co 10 sekund
+}
+
+// ============================================
+
 // CHAT SYSTEM
 // ============================================
 
@@ -5217,6 +5248,9 @@ function initChat() {
         const message = snapshot.val();
         displayChatMessage(message);
     });
+    
+    // Inicjalizuj sprawdzanie aktualizacji
+    initUpdateCheck();
 }
 
 function sendChatMessage() {
