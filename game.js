@@ -24,6 +24,25 @@ const database = firebase.database();
 const auth = firebase.auth();
 console.log('[Firebase] Firebase initialized, database:', database);
 
+// Inicjalizuj wersję w Firebase jeśli nie istnieje
+function initializeGameVersion() {
+    database.ref('system/version').once('value', (snapshot) => {
+        if (!snapshot.exists()) {
+            // Wersja nie istnieje, stwórz ją
+            database.ref('system/version').set(GAME_VERSION).then(() => {
+                console.log('[Firebase] Game version initialized:', GAME_VERSION);
+            }).catch(error => {
+                console.error('[Firebase] Error initializing version:', error);
+            });
+        } else {
+            console.log('[Firebase] Game version already exists:', snapshot.val());
+        }
+    });
+}
+
+// Wywołaj inicjalizację wersji
+initializeGameVersion();
+
 // Flaga wskazująca czy jesteśmy w grze
 let isInGame = false;
 
