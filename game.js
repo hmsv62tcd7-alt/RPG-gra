@@ -3645,6 +3645,9 @@ class Game {
             
             projectile.targetEnemy = target;
             this.projectiles.push(projectile);
+            
+            // Wyślij projektył do innych graczy
+            this.sendProjectileToFirebase(projectile);
         }
         // ========== HUNTER - Ranged Arrows (260px range) - podstawowy atak ==========
         else if (this.player.classType === ClassType.HUNTER) {
@@ -3683,6 +3686,9 @@ class Game {
             
             projectile.targetEnemy = target;
             this.projectiles.push(projectile);
+            
+            // Wyślij projektył do innych graczy
+            this.sendProjectileToFirebase(projectile);
         }
     }
     
@@ -3734,6 +3740,9 @@ class Game {
                 );
                 projectile.targetEnemy = target;
                 this.projectiles.push(projectile);
+                
+                // Wyślij projektył do innych graczy
+                this.sendProjectileToFirebase(projectile);
             }
         }
 
@@ -3758,6 +3767,9 @@ class Game {
                 );
                 projectile.targetEnemy = target;
                 this.projectiles.push(projectile);
+                
+                // Wyślij projektył do innych graczy
+                this.sendProjectileToFirebase(projectile);
             }
         }
 
@@ -6123,6 +6135,46 @@ class Game {
             }, (error) => {
                 console.error('[Multiplayer] Firebase error:', error);
             });
+
+            // Listener dla stanu wrogów (serwerowych)
+            database.ref('gameState/map' + this.currentMap + '/enemies').on('value', (snapshot) => {
+                const enemiesData = snapshot.val() || {};
+                
+                // Aktualizuj stan wrogów w lokalnej grze
+                for (let i = 0; i < this.enemies.length; i++) {
+                    const enemy = this.enemies[i];
+                    const spawnKey = `enemy_${i}`;
+                    
+                    if (enemiesData[spawnKey]) {
+                        const serverEnemy = enemiesData[spawnKey];
+                        enemy.hp = serverEnemy.hp;
+                        enemy.isAlive = serverEnemy.isAlive;
+                        enemy.respawnTimer = serverEnemy.respawnTimer;
+                        // Nie synchronizuj pozycji - AI powinno być lokalne
+                    }
+                }
+            });
+
+            // Listener dla projektylów od innych graczy
+            database.ref('gameState/map' + this.currentMap + '/projectiles').on('child_added', (snapshot) => {
+                const projectileData = snapshot.val();
+                if (projectileData && projectileData.uid !== currentUser.uid) {
+                    // Stwórz projektyl od innego gracza
+                    const projectile = new Projectile(
+                        projectileData.x,
+                        projectileData.y,
+                        projectileData.targetX,
+                        projectileData.targetY,
+                        projectileData.speed,
+                        projectileData.damage,
+                        projectileData.type
+                    );
+                    projectile.fromOtherPlayer = true;
+                    projectile.firedByUid = projectileData.uid;
+                    this.projectiles.push(projectile);
+                }
+            });
+
         } catch (e) {
             console.error('[Multiplayer] Exception:', e);
         }
@@ -6146,6 +6198,56 @@ class Game {
         }).catch((error) => {
             console.error('[Multiplayer] Sync error:', error);
         });
+        
+        // Synchronizuj stan wrogów (serwerowy)
+        this.syncEnemiesToFirebase();
+    }
+
+    syncEnemiesToFirebase() {
+        if (!currentUser || this.enemies.length === 0) return;
+        
+        const enemiesData = {};
+        
+        for (let i = 0; i < this.enemies.length; i++) {
+            const enemy = this.enemies[i];
+            enemiesData[`enemy_${i}`] = {
+                hp: enemy.hp,
+                isAlive: enemy.isAlive,
+                respawnTimer: enemy.respawnTimer,
+                timestamp: Date.now()
+            };
+        }
+        
+        database.ref('gameState/map' + this.currentMap + '/enemies').set(enemiesData).catch((error) => {
+            console.error('[Multiplayer] Error syncing enemies:', error);
+        });
+    }
+
+    sendProjectileToFirebase(projectile) {
+        if (!currentUser) return;
+        
+        const projectileData = {
+            x: projectile.x,
+            y: projectile.y,
+            targetX: projectile.targetX,
+            targetY: projectile.targetY,
+            speed: projectile.speed,
+            damage: projectile.damage,
+            type: projectile.type,
+            uid: currentUser.uid,
+            timestamp: Date.now()
+        };
+        
+        // Dodaj projektyl do listy (auto-usuwany po zniszczeniu)
+        const ref = database.ref('gameState/map' + this.currentMap + '/projectiles').push();
+        ref.set(projectileData).catch((error) => {
+            console.error('[Multiplayer] Error sending projectile:', error);
+        });
+        
+        // Usuń projektył po 5 sekundach (żeby nie zaśmiecał bazę)
+        setTimeout(() => {
+            ref.remove();
+        }, 5000);
     }
 
     drawOtherPlayers() {
