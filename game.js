@@ -2281,7 +2281,8 @@ class Game {
         }
 
         // Generuj 25 potworów na całej mapie
-        this.generateEnemies();
+        // Ale załaduj z Firebase jeśli już istnieją (serwerowi wrogowie)
+        this.loadOrGenerateEnemies();
 
         // Wygeneruj drzewa
         this.generateTrees();
@@ -2452,6 +2453,56 @@ class Game {
         }
     }
 
+    loadOrGenerateEnemies() {
+        // Ładuj wrogów z Firebase (serwerowych) lub wygeneruj nowych jeśli nie ma
+        if (!currentUser) {
+            this.generateEnemies();
+            return;
+        }
+
+        database.ref('gameState/map' + this.currentMap + '/enemiesTemplate').once('value').then((snapshot) => {
+            const enemiesTemplate = snapshot.val();
+            
+            if (enemiesTemplate && enemiesTemplate.length > 0) {
+                // Wrogowie już istnieją w Firebase - załaduj ich
+                console.log('[Multiplayer] Loading enemies from Firebase:', enemiesTemplate.length);
+                this.enemies = [];
+                
+                for (let template of enemiesTemplate) {
+                    const enemy = new Enemy(template.x, template.y, template.name, template.type);
+                    enemy.difficulty = template.difficulty;
+                    enemy.maxHp = template.maxHp;
+                    enemy.hp = template.hp;
+                    enemy.isAlive = template.isAlive;
+                    enemy.respawnTimer = template.respawnTimer || 0;
+                    this.enemies.push(enemy);
+                }
+            } else {
+                // Wrogowie nie istnieją - wygeneruj nowych i zapisz do Firebase
+                console.log('[Multiplayer] Generating new enemies and saving to Firebase');
+                this.generateEnemies();
+                
+                // Zapisz template wrogów do Firebase (pozycje, typy)
+                const enemiesTemplate = this.enemies.map(enemy => ({
+                    x: enemy.x,
+                    y: enemy.y,
+                    name: enemy.name,
+                    type: enemy.type,
+                    difficulty: enemy.difficulty,
+                    maxHp: enemy.maxHp,
+                    hp: enemy.hp,
+                    isAlive: enemy.isAlive,
+                    respawnTimer: enemy.respawnTimer
+                }));
+                
+                database.ref('gameState/map' + this.currentMap + '/enemiesTemplate').set(enemiesTemplate);
+            }
+        }).catch((error) => {
+            console.error('[Multiplayer] Error loading enemies:', error);
+            this.generateEnemies();
+        });
+    }
+
     generateEnemies() {
         // Generuj 25 potworów na całej mapie z podziałem na strefy trudności
         this.enemies = [];
@@ -2469,17 +2520,23 @@ class Game {
         const campX = 1800, campY = 1800;
         const campRadius = 600; // Promień około obozu
         
+        // Funkcja deterministycznego "losowania" na podstawie indeksu
+        const seededRandom = (seed) => {
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        };
+        
         // Dziki i Wilki dla początkujących
         const easyTypes = ['boar', 'whelp', 'wolf'];
         for (let i = 0; i < 8; i++) {
             const type = easyTypes[i % easyTypes.length];
-            const angle = Math.random() * Math.PI * 2;
-            const distance = Math.random() * campRadius;
+            const angle = seededRandom(i * 100) * Math.PI * 2;
+            const distance = seededRandom(i * 100 + 50) * campRadius;
             const x = campX + Math.cos(angle) * distance;
             const y = campY + Math.sin(angle) * distance;
             
             const typeNames = enemyNames[type];
-            const name = typeNames[Math.floor(Math.random() * typeNames.length)];
+            const name = typeNames[Math.floor(seededRandom(i * 100 + 25) * typeNames.length)];
             
             const enemy = new Enemy(x, y, name, type);
             enemy.difficulty = 'easy'; // Łatwy
@@ -2492,16 +2549,16 @@ class Game {
             const types = ['snake', 'wasp', 'wolf', 'boar'];
             const type = types[i % types.length];
             
-            // Losowa pozycja dalej od obozu
-            const x = 500 + Math.random() * 2000;
-            const y = 500 + Math.random() * 2000;
+            // Deterministyczna pozycja dalej od obozu
+            const x = 500 + seededRandom(i * 200 + 1000) * 2000;
+            const y = 500 + seededRandom(i * 200 + 1500) * 2000;
             
             // Jeśli zbyt blisko obozu, przesuń
             const distToCamp = Math.sqrt(Math.pow(x - campX, 2) + Math.pow(y - campY, 2));
             if (distToCamp < campRadius + 400) continue;
             
             const typeNames = enemyNames[type];
-            const name = typeNames[Math.floor(Math.random() * typeNames.length)];
+            const name = typeNames[Math.floor(seededRandom(i * 200 + 2000) * typeNames.length)];
             
             const enemy = new Enemy(x, y, name, type);
             enemy.difficulty = 'medium'; // Średni
@@ -2514,12 +2571,12 @@ class Game {
             const types = ['bear', 'snake', 'wasp', 'wolf'];
             const type = types[i % types.length];
             
-            // Losowa pozycja na końcu mapy
-            const x = 2500 + Math.random() * 1300;
-            const y = 2500 + Math.random() * 1300;
+            // Deterministyczna pozycja na końcu mapy
+            const x = 2500 + seededRandom(i * 300 + 3000) * 1300;
+            const y = 2500 + seededRandom(i * 300 + 3500) * 1300;
             
             const typeNames = enemyNames[type];
-            const name = typeNames[Math.floor(Math.random() * typeNames.length)];
+            const name = typeNames[Math.floor(seededRandom(i * 300 + 4000) * typeNames.length)];
             
             const enemy = new Enemy(x, y, name, type);
             enemy.difficulty = 'hard'; // Trudny
