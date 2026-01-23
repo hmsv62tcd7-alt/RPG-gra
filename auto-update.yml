@@ -1,0 +1,60 @@
+name: Auto Update Version
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Update Game Version in Firebase
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const https = require('https');
+          
+          // Twoja baza Firebase URL
+          const firebaseUrl = 'https://rpg-gra-default-rtdb.europe-west1.firebasedatabase.app/system/version.json';
+          
+          // Odczytaj obecną wersję
+          https.get(firebaseUrl, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              try {
+                const currentVersion = JSON.parse(data) || '1.0.0';
+                console.log('Obecna wersja:', currentVersion);
+                
+                // Inkrementuj wersję o 0.1
+                const parts = currentVersion.split('.');
+                const patch = parseInt(parts[2]) + 1;
+                const newVersion = `${parts[0]}.${parts[1]}.${patch}`;
+                
+                console.log('Nowa wersja:', newVersion);
+                
+                // Zapisz nową wersję
+                const postData = JSON.stringify(newVersion);
+                
+                const options = {
+                  hostname: 'rpg-gra-default-rtdb.europe-west1.firebasedatabase.app',
+                  path: '/system/version.json',
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': postData.length
+                  }
+                };
+                
+                const req = https.request(options, (res) => {
+                  console.log('Wersja zaktualizowana:', newVersion);
+                });
+                
+                req.write(postData);
+                req.end();
+              } catch(error) {
+                console.error('Błąd:', error);
+              }
+            });
+          });

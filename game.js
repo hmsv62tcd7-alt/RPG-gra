@@ -5212,33 +5212,27 @@ function handleLogout() {
 // SYSTEM AKTUALIZACJI
 // ============================================
 
+let versionListener = null;
+
 function initUpdateCheck() {
-    console.log('[Update] Initialization started, checking version every 3 seconds');
+    console.log('[Update] Initializing real-time version listener');
     
-    // Sprawdź wersję gry co 3 sekundy, gdy gracz jest w grze (zmienione z 10 na 3 do testowania)
-    let updateCheckInterval = setInterval(() => {
-        if (!isInGame) {
-            console.log('[Update] Not in game, skipping check');
-            return;
+    // Nasłuchuj zmian wersji w real-time
+    versionListener = database.ref('system/version').on('value', (snapshot) => {
+        const latestVersion = snapshot.val();
+        console.log('[Update] Version check - Latest:', latestVersion, 'Current:', GAME_VERSION);
+        
+        // Sprawdzaj tylko jeśli jesteś w grze
+        if (isInGame && latestVersion && latestVersion !== GAME_VERSION) {
+            console.log('[Update] 🔔 NOWA WERSJA DOSTĘPNA!', latestVersion);
+            // Wyślij wiadomość aktualizacji
+            sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
         }
-        
-        console.log('[Update] Checking version... Current:', GAME_VERSION);
-        
-        database.ref('system/version').once('value', (snapshot) => {
-            const latestVersion = snapshot.val();
-            console.log('[Update] Latest version from Firebase:', latestVersion);
-            
-            if (latestVersion && latestVersion !== GAME_VERSION) {
-                console.log('[Update] Nowa wersja dostępna!', latestVersion, 'vs', GAME_VERSION);
-                // Wyślij wiadomość aktualizacji
-                sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
-            } else {
-                console.log('[Update] Wersje są równe, nie wysyłam wiadomości');
-            }
-        }).catch(error => {
-            console.error('[Update] Error checking version:', error);
-        });
-    }, 3000); // Co 3 sekundy (zmienione z 10 dla szybszego testowania)
+    }, (error) => {
+        console.error('[Update] Error setting up version listener:', error);
+    });
+}
+
 
 }
 
