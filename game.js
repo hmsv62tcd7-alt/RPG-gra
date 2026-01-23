@@ -4122,6 +4122,18 @@ class Game {
         this.ctx.fillStyle = '#0a0a0a';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // Debug overlay na początku klatki (poza transformacją kamery)
+        this.ctx.save();
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        this.ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        this.ctx.font = '12px Arial';
+        this.ctx.fillText(`CANVAS ${this.canvas.width}x${this.canvas.height}`, 20, 20);
+        if (this.player) {
+            this.ctx.fillText(`player ${this.player.x.toFixed(1)},${this.player.y.toFixed(1)}`, 20, 40);
+        }
+        this.ctx.fillText(`cam ${Math.round(this.cameraX)},${Math.round(this.cameraY)}`, 20, 60);
+        this.ctx.restore();
+
         // Zapisz stan kontekstu przed transformacją kamery
         this.ctx.save();
 
@@ -4208,11 +4220,6 @@ class Game {
 
         // Przywróć stan kontekstu (usuń transformację)
         this.ctx.restore();
-
-        // Debug overlay na głównym canvasie (poza transformacją kamery)
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = '12px Arial';
-        this.ctx.fillText(`cam:${Math.round(this.cameraX)},${Math.round(this.cameraY)} player:${Math.round(this.player?.x || 0)},${Math.round(this.player?.y || 0)} canvas:${this.canvas.width}x${this.canvas.height}` , 20, 20);
 
         // Info (rysuj poza transformacją, aby być na górze)
         this.drawInfo();
