@@ -163,66 +163,6 @@
                     </div>
                     
                     <!-- Broń (left top) -->
-                    <div class="slot-position weapon-pos">
-                        <div class="equipment-slot weapon-slot" data-slot="weapon" title="Broń - Prawy klik: Załóż/Zdejmij">⚔</div>
-                    </div>
-                    
-                    <!-- Postać na środku -->
-                    <div class="character-model">
-                        <div class="character-visual">
-                            <div class="character-body">
-                                <div class="head"></div>
-                                <div class="body"></div>
-                                <div class="arms">
-                                    <div class="arm left-arm"></div>
-                                    <div class="arm right-arm"></div>
-                                </div>
-                                <div class="legs">
-                                    <div class="leg left-leg"></div>
-                                    <div class="leg right-leg"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Tarcza (left bottom) -->
-                    <div class="slot-position shield-pos">
-                        <div class="equipment-slot shield-slot" data-slot="shield" title="Tarcza/Orb - Prawy klik: Załóż/Zdejmij">🛡</div>
-                    </div>
-                    
-                    <!-- Pierścionek (right center) -->
-                    <div class="slot-position accessory-pos">
-                        <div class="equipment-slot accessory-slot" data-slot="accessory" title="Pierścionek - Prawy klik: Załóż/Zdejmij">💍</div>
-                    </div>
-                    
-                    <!-- Buty (bottom center) -->
-                    <div class="slot-position boots-pos">
-                        <div class="equipment-slot boots-slot" data-slot="boots" title="Buty - Prawy klik: Załóż/Zdejmij">👢</div>
-                    </div>
-                    
-                    <!-- Naszyjnik (bottom center, under buty) -->
-                    <div class="slot-position necklace-pos">
-                        <div class="equipment-slot necklace-slot" data-slot="necklace" title="Naszyjnik - Prawy klik: Załóż/Zdejmij">⛓</div>
-                    </div>
-                </div>
-                
-                <!-- Stats -->
-                <div class="equipment-stats" id="equipmentStats">
-                    <div class="stat-row">
-                        <span class="stat-label">ATK:</span>
-                        <span class="stat-value" id="eqATK">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">DEF:</span>
-                        <span class="stat-value" id="eqDEF">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">STR:</span>
-                        <span class="stat-value" id="eqSTR">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">INT:</span>
-                        <span class="stat-value" id="eqINT">0</span>
                     </div>
                     <div class="stat-row">
                         <span class="stat-label">ZRN:</span>
@@ -324,6 +264,67 @@
             <div class="chat-input-wrapper">
                 <input type="text" id="chatInput" placeholder="Wpisz wiadomość..." maxlength="100">
                 <button id="chatSendBtn">📤</button>
+            </div>
+        </div>
+
+        <!-- Player Context Menu (prawy przycisk na graczu) -->
+        <div id="playerContextMenu" class="context-menu hidden">
+            <div class="context-menu-header">
+                <span id="contextPlayerName">Gracz</span>
+            </div>
+            <button class="context-menu-item" id="contextInviteParty">
+                <span class="context-icon">👥</span>
+                Zaproś do Party
+            </button>
+            <button class="context-menu-item" id="contextTrade">
+                <span class="context-icon">💰</span>
+                Zaproś do Handlu
+            </button>
+            <button class="context-menu-item" id="contextAddFriend">
+                <span class="context-icon">⭐</span>
+                Dodaj do Znajomych
+            </button>
+            <button class="context-menu-item" id="contextWhisper">
+                <span class="context-icon">💬</span>
+                Wyślij Wiadomość
+            </button>
+        </div>
+
+        <!-- Party Panel -->
+        <div id="partyPanel" class="party-panel hidden">
+            <div class="party-header">
+                <h3>👥 Grupa</h3>
+                <button class="party-close" id="closeParty">✕</button>
+            </div>
+            <div id="partyMembers" class="party-members">
+                <div class="party-empty">Nie jesteś w grupie</div>
+            </div>
+            <button id="leaveParty" class="party-leave-btn hidden">Opuść Grupę</button>
+        </div>
+
+        <!-- Trade Window -->
+        <div id="tradeWindow" class="trade-window hidden">
+            <div class="trade-header">
+                <h3>💰 Handel z: <span id="tradePartnerName">Gracz</span></h3>
+                <button class="trade-close" id="closeTrade">✕</button>
+            </div>
+            <div class="trade-container">
+                <div class="trade-side">
+                    <h4>Twoje przedmioty</h4>
+                    <div id="tradeYourItems" class="trade-items"></div>
+                    <div class="trade-gold">
+                        <label>Gold: <input type="number" id="tradeYourGold" min="0" value="0"></label>
+                    </div>
+                    <button id="tradeAccept" class="trade-btn">Zaakceptuj</button>
+                </div>
+                <div class="trade-side">
+                    <h4>Przedmioty <span id="tradePartnerName2">gracza</span></h4>
+                    <div id="tradePartnerItems" class="trade-items"></div>
+                    <div class="trade-gold">
+                        <span>Gold: <span id="tradePartnerGold">0</span></span>
+                    </div>
+                    <div id="tradePartnerStatus"></div>
+                </div>
             </div>
         </div>
     </div>
