@@ -4994,9 +4994,23 @@ class Game {
 
         this.update();
         this.draw();
+        this.updateGameTime();  // Aktualizuj zegar
 
         this._gameLoopId = requestAnimationFrame(() => this.gameLoop());
     }
+
+    updateGameTime() {
+        const timeEl = document.getElementById('gameTime');
+        if (!timeEl) return;
+        
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        timeEl.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+
 
     // ============================================
     // MULTIPLAYER - Firebase
@@ -5269,8 +5283,6 @@ function sendSystemMessage(text) {
     
     database.ref('chat/messages').push(message).then(() => {
         console.log('[Chat] System message sent successfully');
-        // Bezpośrednio wyświetl wiadomość (bo listener może nie trigger'ować)
-        displayChatMessage(message);
     }).catch(error => {
         console.error('[Chat] System message error:', error);
     });
