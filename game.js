@@ -276,6 +276,45 @@ class Player {
         // Equipment bonuses
         this.equipmentATK = 0;
         this.equipmentDEF = 0;
+        
+        // Combat system
+        this.currentTarget = null;
+        this.lastAttackTime = 0;
+        this.attackCooldown = 0;
+        this.moveToTarget = null; // Position do którego się porusza
+        
+        // Skill system
+        this.skill1LastTime = 0;
+        this.skill2LastTime = 0;
+        this.skill3LastTime = 0;
+        this.skill1Cooldown = 0;
+        this.skill2Cooldown = 0;
+        this.skill3Cooldown = 0;
+        
+        // Special effects
+        this.shieldHP = 0; // Dodatkowy shield
+        this.shieldEndTime = 0;
+    }
+
+    takeDamage(damage) {
+        // Sprawdź czy shield jeszcze aktywny
+        const now = Date.now();
+        if (this.shieldEndTime && now < this.shieldEndTime && this.shieldHP > 0) {
+            // Shield absorbuje damage
+            const shieldDamage = Math.min(this.shieldHP, damage);
+            this.shieldHP -= shieldDamage;
+            const remainingDamage = damage - shieldDamage;
+            
+            if (remainingDamage > 0) {
+                this.hp = Math.max(0, this.hp - remainingDamage);
+                return damage;
+            }
+            return damage;
+        }
+        
+        // Brak shield - zwykły damage
+        this.hp = Math.max(0, this.hp - damage);
+        return damage;
     }
 
     update() {
@@ -431,6 +470,167 @@ class Quest {
         this.completed = false;
         this.progress = 0;
         this.rewardClaimed = false; // Czy nagroda została odebrana
+    }
+}
+
+// ========== PROJECTILE CLASS ==========
+class Projectile {
+    constructor(x, y, targetX, targetY, speed = 300, damage = 10, type = 'arrow') {
+        this.x = x;
+        this.y = y;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.speed = speed; // px/s
+        this.damage = damage;
+        this.type = type; // 'arrow', 'orb'
+        this.alive = true;
+        
+        // Oblicz kierunek
+        const dx = targetX - x;
+        const dy = targetY - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist > 0) {
+            this.vx = (dx / dist) * speed;
+            this.vy = (dy / dist) * speed;
+        } else {
+            this.vx = 0;
+            this.vy = 0;
+        }
+        
+        this.width = 8;
+        this.height = 8;
+        this.trailParticles = []; // Ślad cząsteczek
+    }
+    
+    update(deltaTime) {
+        const dt = deltaTime || 0.016; // ~60 FPS
+        
+        // Aktualizuj pozycję
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        
+        // Sprawdź czy dotarł do celu (w promieniu 15px)
+        const dx = this.x - this.targetX;
+        const dy = this.y - this.targetY;
+        const distToTarget = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distToTarget < 15) {
+            this.alive = false;
+        }
+        
+        // Sprawdź czy wyleciał poza mapę
+        if (this.x < -50 || this.x > MAP_WIDTH + 50 || 
+            this.y < -50 || this.y > MAP_HEIGHT + 50) {
+            this.alive = false;
+        }
+        
+        // Dodaj cząsteczki śladu (co kilka updatów)
+        if (Math.random() < 0.3) {
+            this.trailParticles.push({
+                x: this.x,
+                y: this.y,
+                life: 0.3,
+                maxLife: 0.3,
+                type: this.type
+            });
+        }
+        
+        // Update śladu
+        for (let i = this.trailParticles.length - 1; i >= 0; i--) {
+            this.trailParticles[i].life -= dt;
+            if (this.trailParticles[i].life <= 0) {
+                this.trailParticles.splice(i, 1);
+            }
+        }
+    }
+    
+    draw(ctx) {
+        // Rysuj ślad
+        for (let particle of this.trailParticles) {
+            const alpha = particle.life / particle.maxLife;
+            ctx.globalAlpha = alpha * 0.6;
+            
+            if (particle.type === 'arrow') {
+                ctx.fillStyle = '#ffcc00';
+                ctx.fillRect(particle.x - 2, particle.y - 2, 4, 4);
+            } else if (particle.type === 'orb') {
+                ctx.fillStyle = '#6699ff';
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (particle.type === 'fireball') {
+                ctx.fillStyle = '#ff6633';
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        ctx.globalAlpha = 1;
+        
+        // Rysuj sam projectile
+        if (this.type === 'arrow') {
+            // Strzała - żółta
+            ctx.fillStyle = '#ffcc00';
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            
+            // Oblicz kąt
+            const angle = Math.atan2(this.vy, this.vx);
+            ctx.rotate(angle);
+            
+            // Trójkąt (głowica strzały)
+            ctx.beginPath();
+            ctx.moveTo(4, 0);
+            ctx.lineTo(-3, -3);
+            ctx.lineTo(-2, 0);
+            ctx.lineTo(-3, 3);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+        } else if (this.type === 'orb') {
+            // Magiczna kula - niebieska z blaskiem
+            ctx.fillStyle = '#6699ff';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#99ccff';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+            ctx.stroke();
+        } else if (this.type === 'fireball') {
+            // Kula Ognia - pomarańczowa/czerwona z blaskiem
+            ctx.fillStyle = '#ff6633';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Środkowy punkt (jaśniejszy)
+            ctx.fillStyle = '#ffaa66';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Glow
+            ctx.strokeStyle = 'rgba(255, 102, 51, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 7, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+    
+    // Sprawdzenie kolizji z wrogiem
+    checkCollisionWithEnemy(enemy) {
+        const dx = this.x - (enemy.x + enemy.width / 2);
+        const dy = this.y - (enemy.y + enemy.height / 2);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        return distance < (this.width / 2 + enemy.width / 2);
     }
 }
 
@@ -701,6 +901,7 @@ class Enemy {
         this.difficulty = 'easy'; // 'easy', 'medium', 'hard' - domyślnie łatwy
         this.isAggro = false;
         this.isAlive = true;
+        this.isTargeted = false; // True gdy wybrany jako cel przez gracza
         this.respawnTimer = 0;
         this.respawnTime = 10; // 10 sekund
         this.spawnX = x;
@@ -1296,6 +1497,7 @@ class Game {
         this.player = null;
         this.npcs = [];
         this.enemies = []; // Lista wrogów
+        this.projectiles = []; // Pociski (strzały, magiczne kule)
         this.currentEnemy = null; // Aktualny wróg w walce
         this.keys = {};
         this.battle = null;
@@ -1390,16 +1592,53 @@ class Game {
         this.setupPauseMenuHandlers();
 
         // Walka - skill bar
-        document.getElementById('skillBtn1').addEventListener('click', () => this.handleBattleAction('attack'));
-        document.getElementById('skillBtn2').addEventListener('click', () => this.handleBattleAction('skill1'));
-        document.getElementById('skillBtn3').addEventListener('click', () => this.handleBattleAction('skill2'));
+        // Skill 1 (Atak) - działa zarówno w walce jak i w eksploracji
+        document.getElementById('skillBtn1').addEventListener('click', () => {
+            if (this.battle) {
+                this.handleBattleAction('attack');
+            } else {
+                // Normalny atak w eksploracji
+                this.basicAttack();
+            }
+        });
+        document.getElementById('skillBtn2').addEventListener('click', () => {
+            if (this.battle) {
+                this.handleBattleAction('skill1');
+            } else {
+                this.castSkill(2);
+            }
+        });
+        document.getElementById('skillBtn3').addEventListener('click', () => {
+            if (this.battle) {
+                this.handleBattleAction('skill2');
+            } else {
+                this.castSkill(3);
+            }
+        });
         
         // Też klawiszami 1,2,3
         document.addEventListener('keydown', (e) => {
-            if (!this.battle) return;
-            if (e.key === '1') this.handleBattleAction('attack');
-            if (e.key === '2') this.handleBattleAction('skill1');
-            if (e.key === '3') this.handleBattleAction('skill2');
+            if (e.key === '1') {
+                if (this.battle) {
+                    this.handleBattleAction('attack');
+                } else {
+                    this.basicAttack();
+                }
+            }
+            if (e.key === '2') {
+                if (this.battle) {
+                    this.handleBattleAction('skill1');
+                } else {
+                    this.castSkill(2);
+                }
+            }
+            if (e.key === '3') {
+                if (this.battle) {
+                    this.handleBattleAction('skill2');
+                } else {
+                    this.castSkill(3);
+                }
+            }
         });
 
         // Canvas click dla interakcji z NPC
@@ -1485,6 +1724,39 @@ class Game {
         // Przelicz koordynaty ze względu na kamerę
         const worldClickX = clickX + this.cameraX;
         const worldClickY = clickY + this.cameraY;
+
+        // Najpierw sprawdź czy kliknięto na wroga (targeting system)
+        let clickedEnemy = null;
+        for (let enemy of this.enemies) {
+            if (!enemy.isAlive) continue; // Zignoruj martwych wrogów
+            
+            const dx = worldClickX - (enemy.x + enemy.width / 2);
+            const dy = worldClickY - (enemy.y + enemy.height / 2);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < enemy.width / 2 + 5) {
+                clickedEnemy = enemy;
+                break;
+            }
+        }
+        
+        // Jeśli kliknięto na wroga, ustaw go jako cel
+        if (clickedEnemy) {
+            // Wyłącz isTargeted u poprzedniego celu
+            if (this.player.currentTarget) {
+                this.player.currentTarget.isTargeted = false;
+            }
+            // Ustaw nowy cel
+            this.player.currentTarget = clickedEnemy;
+            clickedEnemy.isTargeted = true;
+            return;
+        }
+
+        // Jeśli kliknięto na puste miejsce, usuń cel
+        if (this.player.currentTarget) {
+            this.player.currentTarget.isTargeted = false;
+            this.player.currentTarget = null;
+        }
 
         // Sprawdź czy kliknięto na NPC
         for (let npc of this.npcs) {
@@ -2344,6 +2616,11 @@ class Game {
             }
         }
 
+        // Atak (klawisz 1)
+        if (key === '1') {
+            this.basicAttack();
+        }
+
         // Pause menu (ESC)
         if (key === 'Escape') {
             // Zamknij dialog jeśli jest otwarty
@@ -2420,17 +2697,40 @@ class Game {
         this.player.velocityX = 0;
         this.player.velocityY = 0;
 
-        // WASD
-        if (this.keys['W']) this.player.velocityY = -this.player.speed;
-        if (this.keys['S']) this.player.velocityY = this.player.speed;
-        if (this.keys['A']) this.player.velocityX = -this.player.speed;
-        if (this.keys['D']) this.player.velocityX = this.player.speed;
+        // Jeśli gracz ma cel do podejścia (moveToTarget), idź w jego kierunku
+        if (this.player.moveToTarget) {
+            const targetX = this.player.moveToTarget.x + this.player.moveToTarget.width / 2;
+            const targetY = this.player.moveToTarget.y + this.player.moveToTarget.height / 2;
+            const playerCenterX = this.player.x + this.player.width / 2;
+            const playerCenterY = this.player.y + this.player.height / 2;
+            
+            const dx = targetX - playerCenterX;
+            const dy = targetY - playerCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Jeśli dotarł do celu (w promieniu 30px), zatrzymaj się
+            if (distance < 30) {
+                this.player.moveToTarget = null;
+            } else if (distance > 0) {
+                // Poruszaj się w kierunku celu
+                const speed = this.player.speed;
+                this.player.velocityX = (dx / distance) * speed;
+                this.player.velocityY = (dy / distance) * speed;
+            }
+        } else {
+            // Normalna kontrola gracza (WASD/Strzałki)
+            // WASD
+            if (this.keys['W']) this.player.velocityY = -this.player.speed;
+            if (this.keys['S']) this.player.velocityY = this.player.speed;
+            if (this.keys['A']) this.player.velocityX = -this.player.speed;
+            if (this.keys['D']) this.player.velocityX = this.player.speed;
 
-        // Strzałki
-        if (this.keys['UP']) this.player.velocityY = -this.player.speed;
-        if (this.keys['DOWN']) this.player.velocityY = this.player.speed;
-        if (this.keys['LEFT']) this.player.velocityX = -this.player.speed;
-        if (this.keys['RIGHT']) this.player.velocityX = this.player.speed;
+            // Strzałki
+            if (this.keys['UP']) this.player.velocityY = -this.player.speed;
+            if (this.keys['DOWN']) this.player.velocityY = this.player.speed;
+            if (this.keys['LEFT']) this.player.velocityX = -this.player.speed;
+            if (this.keys['RIGHT']) this.player.velocityX = this.player.speed;
+        }
     }
 
     getCurrentMapBounds() {
@@ -2640,6 +2940,9 @@ class Game {
             }
         }
         
+        // Update projektyli
+        this.updateProjectiles();
+        
         this.updateHUD();
         
         // Synchronizuj pozycję gracza na Firebase (co 200ms)
@@ -2807,7 +3110,8 @@ class Game {
     endBattle() {
         if (!this.battle) return; // Bezpieczeństwo
         
-        document.getElementById('battleHUD').classList.add('hidden');
+        // NIE chowaj battleHUD - zawsze powinien być widoczny z przyciskiem Ataku
+        // document.getElementById('battleHUD').classList.add('hidden');
         
         // Sprawdzenie czy gracz zginie
         const playerDied = this.player.hp <= 0;
@@ -2931,6 +3235,82 @@ class Game {
         } catch (e) {}
     }
 
+    updateAttackButtonCooldown() {
+        // Aktualizuj cooldown przycisku Ataku w eksploracji (nie w walce)
+        if (this.battle) return; // W walce obsługuje to updateBattleHUD
+        
+        const now = Date.now();
+        const cooldown = this.player.classType === ClassType.MAG ? 800 : 
+                        this.player.classType === ClassType.HUNTER ? 750 : 1000; // WOJ
+        
+        const timeSinceAttack = now - this.player.lastAttackTime;
+        const remainingCooldown = Math.max(0, (cooldown - timeSinceAttack) / 1000);
+        
+        const skillCD1 = document.getElementById('skillCD1');
+        const skillBtn1 = document.getElementById('skillBtn1');
+        
+        if (skillCD1) {
+            if (remainingCooldown > 0) {
+                skillCD1.textContent = remainingCooldown.toFixed(1) + 's';
+                skillBtn1.disabled = true;
+                skillBtn1.style.opacity = '0.5';
+            } else {
+                skillCD1.textContent = 'GOTÓW';
+                skillBtn1.disabled = false;
+                skillBtn1.style.opacity = '1';
+            }
+        }
+        
+        // Aktualizuj skill cooldowny
+        const now2 = Date.now();
+        
+        // Skill 2
+        const skill2CD = 1200;
+        const timeSinceSkill2 = now2 - this.player.skill2LastTime;
+        const skill2Remaining = Math.max(0, (skill2CD - timeSinceSkill2) / 1000);
+        const skillCD2 = document.getElementById('skillCD2');
+        const skillBtn2 = document.getElementById('skillBtn2');
+        if (skillCD2) {
+            if (skill2Remaining > 0) {
+                skillCD2.textContent = skill2Remaining.toFixed(1) + 's';
+                skillBtn2.disabled = true;
+                skillBtn2.style.opacity = '0.5';
+            } else {
+                skillCD2.textContent = 'GOTÓW';
+                skillBtn2.disabled = false;
+                skillBtn2.style.opacity = '1';
+            }
+        }
+        
+        // Skill 3
+        const skill3CD = 15000;
+        const timeSinceSkill3 = now2 - this.player.skill3LastTime;
+        const skill3Remaining = Math.max(0, (skill3CD - timeSinceSkill3) / 1000);
+        const skillCD3 = document.getElementById('skillCD3');
+        const skillBtn3 = document.getElementById('skillBtn3');
+        if (skillCD3) {
+            if (skill3Remaining > 0) {
+                skillCD3.textContent = skill3Remaining.toFixed(1) + 's';
+                skillBtn3.disabled = true;
+                skillBtn3.style.opacity = '0.5';
+            } else {
+                skillCD3.textContent = 'GOTÓW';
+                skillBtn3.disabled = false;
+                skillBtn3.style.opacity = '1';
+            }
+        }
+        
+        // Aktualizuj HP gracza w battle HUD podczas eksploracji
+        const playerHpPercent = (this.player.hp / this.player.maxHp) * 100;
+        const battlePlayerHp = document.getElementById('battlePlayerHp');
+        const battlePlayerHpText = document.getElementById('battlePlayerHpText');
+        const battlePlayerName = document.getElementById('battlePlayerName');
+        
+        if (battlePlayerHp) battlePlayerHp.style.width = playerHpPercent + '%';
+        if (battlePlayerHpText) battlePlayerHpText.textContent = `${this.player.hp}/${this.player.maxHp}`;
+        if (battlePlayerName) battlePlayerName.textContent = `${this.player.name || 'Ty'} (LVL ${this.player.level})`;
+    }
+
     updateHUD() {
         const hpPercent = (this.player.hp / this.player.maxHp) * 100;
         document.getElementById('hpFill').style.width = hpPercent + '%';
@@ -2954,6 +3334,9 @@ class Game {
         
         // Update stats in equipment panel
         this.updateEquipmentStatsUI();
+
+        // Update attack button cooldown (eksploracja)
+        this.updateAttackButtonCooldown();
 
         // Update quest panel
         this.updateQuestPanel();
@@ -3059,6 +3442,8 @@ class Game {
         const eqZrnEl = document.getElementById('eqZRN');
         const eqVitEl = document.getElementById('eqVIT');
         const eqHpEl = document.getElementById('eqHP');
+        const eqSpecialLabelEl = document.getElementById('eqSpecialLabel');
+        const eqSpecialEl = document.getElementById('eqSpecial');
         
         // Oblicz ATK i DEF na podstawie statów
         // ATK = STR * 2 + INT * 1 + ZRN * 1 + bonusy ekwipunku
@@ -3073,6 +3458,227 @@ class Game {
         if (eqZrnEl) eqZrnEl.textContent = stats.zrn;
         if (eqVitEl) eqVitEl.textContent = stats.vit;
         if (eqHpEl) eqHpEl.textContent = `${this.player.hp}/${this.player.maxHp}`;
+        
+        // Specjalna cecha klasy
+        const specialValue = 5; // Tymczasowa wartość bazowa
+        let specialLabel = 'BLOK:'; // Default
+        
+        if (this.player.classType === ClassType.WOJ) {
+            specialLabel = 'BLOK:';
+        } else if (this.player.classType === ClassType.HUNTER) {
+            specialLabel = 'UNIK:';
+        } else if (this.player.classType === ClassType.MAG) {
+            specialLabel = 'CRIT:';
+        }
+        
+        if (eqSpecialLabelEl) eqSpecialLabelEl.textContent = specialLabel;
+        if (eqSpecialEl) eqSpecialEl.textContent = `${specialValue}%`;
+    }
+
+    // ========== ATTACK SYSTEM ==========
+    basicAttack() {
+        // Sprawdzenie warunków ataku
+        if (!this.player.currentTarget) {
+            return; // Brak celu
+        }
+        
+        if (!this.player.currentTarget.isAlive) {
+            this.player.currentTarget = null;
+            return; // Cel nie żyje
+        }
+        
+        // MAG nie może używać zwykłego ataku - musi użyć skillów!
+        if (this.player.classType === ClassType.MAG) {
+            return;
+        }
+        
+        const now = Date.now();
+        const cooldown = this.player.classType === ClassType.HUNTER ? 750 : 1000; // WOJ
+        
+        if (now - this.player.lastAttackTime < cooldown) {
+            return; // Cooldown nie minął
+        }
+        
+        this.player.lastAttackTime = now;
+        
+        const target = this.player.currentTarget;
+        const playerCenterX = this.player.x + this.player.width / 2;
+        const playerCenterY = this.player.y + this.player.height / 2;
+        const targetCenterX = target.x + target.width / 2;
+        const targetCenterY = target.y + target.height / 2;
+        
+        const dx = targetCenterX - playerCenterX;
+        const dy = targetCenterY - playerCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // ========== WOJOWNIK - Melee (40px range) ==========
+        if (this.player.classType === ClassType.WOJ) {
+            const meleeRange = 40;
+            
+            // Jeśli za daleko, idź do celu
+            if (distance > meleeRange) {
+                this.player.moveToTarget = target;
+                return;
+            }
+            
+            // W zasięgu - wykonaj cios
+            const stats = this.player.stats;
+            const baseDamage = stats.str * 2 + 5;
+            const bonusDamage = this.player.equipmentATK || 0;
+            const totalDamage = baseDamage + bonusDamage;
+            
+            // Obniżenie przez obronę
+            const actualDamage = target.takeDamage(totalDamage);
+            
+            // Wizualizacja
+            this.createDamageText(targetCenterX, targetCenterY, actualDamage);
+            this.createAttackEffect(playerCenterX, playerCenterY, 'melee');
+            
+        } 
+        // ========== HUNTER - Ranged Arrows (260px range) ==========
+        else if (this.player.classType === ClassType.HUNTER) {
+            const arrowRange = 260;
+            
+            if (distance > arrowRange) {
+                return; // Za daleko
+            }
+            
+            // Stwórz projektyl - strzałę
+            const stats = this.player.stats;
+            const baseDamage = stats.zrn * 2 + stats.str * 1 + 2;
+            const bonusDamage = this.player.equipmentATK || 0;
+            const totalDamage = baseDamage + bonusDamage;
+            
+            const projectile = new Projectile(
+                playerCenterX,
+                playerCenterY,
+                targetCenterX,
+                targetCenterY,
+                520, // speed px/s (szybsza niż orb)
+                totalDamage,
+                'arrow'
+            );
+            
+            projectile.targetEnemy = target;
+            this.projectiles.push(projectile);
+        }
+    }
+    
+    createDamageText(x, y, damage) {
+        // TODO: Można dodać floating damage text
+        // Na razie tylko aplikujemy obrażenia
+    }
+
+    createAttackEffect(x, y, type) {
+        // Wizualne efekty dla ataków
+        // Będą rysowane w draw()
+    }
+
+    // ========== SKILL SYSTEM ==========
+    
+    castSkill(skillNumber) {
+        if (!this.player.currentTarget || !this.player.currentTarget.isAlive) {
+            return;
+        }
+
+        const now = Date.now();
+        const target = this.player.currentTarget;
+        const playerCenterX = this.player.x + this.player.width / 2;
+        const playerCenterY = this.player.y + this.player.height / 2;
+        const targetCenterX = target.x + target.width / 2;
+        const targetCenterY = target.y + target.height / 2;
+        const dx = targetCenterX - playerCenterX;
+        const dy = targetCenterY - playerCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // ===== SKILL 1 - Magic Orb (Kula Magii) - wszyscy =====
+        if (skillNumber === 1) {
+            const cooldown = 800;
+            if (now - this.player.skill1LastTime < cooldown) return;
+            this.player.skill1LastTime = now;
+
+            if (this.player.classType === ClassType.MAG) {
+                if (distance > 220) return;
+                
+                const stats = this.player.stats;
+                const baseDamage = stats.int * 2 + 3;
+                const bonusDamage = this.player.equipmentATK || 0;
+                const totalDamage = baseDamage + bonusDamage;
+
+                const projectile = new Projectile(
+                    playerCenterX, playerCenterY,
+                    targetCenterX, targetCenterY,
+                    420, totalDamage, 'orb'
+                );
+                projectile.targetEnemy = target;
+                this.projectiles.push(projectile);
+            }
+        }
+
+        // ===== SKILL 2 - Fireball (Kula Ognia) - Mag =====
+        if (skillNumber === 2) {
+            const cooldown = 1200;
+            if (now - this.player.skill2LastTime < cooldown) return;
+            this.player.skill2LastTime = now;
+
+            if (this.player.classType === ClassType.MAG) {
+                if (distance > 240) return;
+                
+                const stats = this.player.stats;
+                const baseDamage = stats.int * 2 + 8; // Stronger than orb
+                const bonusDamage = this.player.equipmentATK || 0;
+                const totalDamage = baseDamage + bonusDamage;
+
+                const projectile = new Projectile(
+                    playerCenterX, playerCenterY,
+                    targetCenterX, targetCenterY,
+                    380, totalDamage, 'fireball'
+                );
+                projectile.targetEnemy = target;
+                this.projectiles.push(projectile);
+            }
+        }
+
+        // ===== SKILL 3 - Magic Shield (Obrona Magi) - Mag =====
+        if (skillNumber === 3) {
+            const cooldown = 15000; // 15 seconds
+            if (now - this.player.skill3LastTime < cooldown) return;
+            this.player.skill3LastTime = now;
+
+            if (this.player.classType === ClassType.MAG) {
+                // Dodaj shield
+                const shieldAmount = 10;
+                this.player.shieldHP = shieldAmount;
+                this.player.shieldEndTime = now + 10000; // 10 seconds duration
+            }
+        }
+    }
+
+    updateProjectiles() {
+        // Update wszystkich projektyli
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            const projectile = this.projectiles[i];
+            projectile.update(0.016); // ~60 FPS
+            
+            // Sprawdź kolizję z wrogiem
+            if (projectile.targetEnemy && projectile.targetEnemy.isAlive) {
+                if (projectile.checkCollisionWithEnemy(projectile.targetEnemy)) {
+                    // Trafienie!
+                    const actualDamage = projectile.targetEnemy.takeDamage(projectile.damage);
+                    this.createDamageText(
+                        projectile.targetEnemy.x + projectile.targetEnemy.width / 2,
+                        projectile.targetEnemy.y + projectile.targetEnemy.height / 2,
+                        actualDamage
+                    );
+                    projectile.alive = false;
+                }
+            }
+            
+            // Usuń martwego projektyla
+            if (!projectile.alive) {
+                this.projectiles.splice(i, 1);
+            }
+        }
     }
 
     updateShopDisplay() {
@@ -3219,11 +3825,28 @@ class Game {
         if (this.currentMap !== 3) {
             for (let enemy of this.enemies) {
                 enemy.draw(this.ctx);
+                
+                // Rysuj marker targetowania
+                if (enemy.isTargeted) {
+                    this.drawTargetMarker(enemy);
+                }
             }
         }
 
         // Rysuj gracza
         this.player.draw(this.ctx);
+        
+        // Rysuj shield efekt gracza
+        if (this.player.shieldHP > 0 && this.player.shieldEndTime && Date.now() < this.player.shieldEndTime) {
+            this.drawPlayerShield();
+        }
+
+        // Rysuj projektyle (tylko na mapach 1 i 2)
+        if (this.currentMap !== 3) {
+            for (let projectile of this.projectiles) {
+                projectile.draw(this.ctx);
+            }
+        }
 
         // Rysuj innych graczy (multiplayer)
         if (this.currentMap === 1 || this.currentMap === 2) {
@@ -3455,6 +4078,87 @@ class Game {
         this.ctx.shadowBlur = 2;
         this.ctx.fillText(npc.name, npc.x + npc.width / 2, npc.y - 10);
         this.ctx.shadowColor = 'transparent';
+    }
+
+    drawTargetMarker(enemy) {
+        // Rysuj marker targetowania wokół wroga
+        const centerX = enemy.x + enemy.width / 2;
+        const centerY = enemy.y + enemy.height / 2;
+        const radius = enemy.width / 2 + 8;
+        
+        // Pulsujący okrąg (na podstawie czasu)
+        const time = Date.now() / 1000;
+        const pulse = 0.5 + 0.5 * Math.sin(time * 3); // Pulsuje 3x na sekundę
+        
+        // Zewnętrzny okrąg (pulsujący)
+        this.ctx.strokeStyle = `rgba(255, 100, 100, ${pulse * 0.8})`;
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // Wewnętrzny okrąg (stały)
+        this.ctx.strokeStyle = 'rgba(255, 50, 50, 0.6)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius - 4, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // Cztery punkty wskazujące (N, E, S, W)
+        const pointRadius = radius + 6;
+        this.ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
+        const points = [
+            { x: centerX, y: centerY - pointRadius }, // N
+            { x: centerX + pointRadius, y: centerY }, // E
+            { x: centerX, y: centerY + pointRadius }, // S
+            { x: centerX - pointRadius, y: centerY }  // W
+        ];
+        
+        for (let point of points) {
+            this.ctx.beginPath();
+            this.ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+    }
+
+    drawPlayerShield() {
+        // Rysuj blue shield efekt wokół gracza
+        const centerX = this.player.x + this.player.width / 2;
+        const centerY = this.player.y + this.player.height / 2;
+        const now = Date.now();
+        const shieldEndTime = this.player.shieldEndTime;
+        const shieldDuration = 10000; // 10 seconds
+        const timeRemaining = Math.max(0, shieldEndTime - now);
+        const progress = timeRemaining / shieldDuration;
+        
+        // Niebieska poswiata (pulsująca)
+        const pulse = 0.6 + 0.4 * Math.sin(now / 200);
+        const radius = this.player.width / 2 + 15;
+        
+        // Główny glow
+        const gradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+        gradient.addColorStop(0, `rgba(100, 150, 255, ${pulse * 0.3})`);
+        gradient.addColorStop(0.5, `rgba(100, 150, 255, ${pulse * 0.15})`);
+        gradient.addColorStop(1, `rgba(100, 150, 255, 0)`);
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Okrąg obramowania (solidny)
+        this.ctx.strokeStyle = `rgba(100, 180, 255, ${pulse * 0.8})`;
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius - 5, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // Wewnętrzny okrąg
+        this.ctx.strokeStyle = `rgba(150, 200, 255, ${pulse * 0.6})`;
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius - 10, 0, Math.PI * 2);
+        this.ctx.stroke();
     }
 
     drawGrid() {
