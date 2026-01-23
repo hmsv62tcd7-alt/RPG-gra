@@ -5182,6 +5182,7 @@ class Game {
             name: this.selectedChar ? this.selectedChar.name : 'Gracz',
             level: this.player.level || 1,
             className: this.player.className || 'Wojownik',
+            currentMap: this.currentMap,  // Dodaj informację o mapie
             timestamp: Date.now()
         };
         
