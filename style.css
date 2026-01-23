@@ -297,6 +297,159 @@ canvas {
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
 }
 
+/* Ranking Button */
+.ranking-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    font-size: 32px;
+    background: rgba(212, 175, 55, 0.1);
+    border: 2px solid var(--bg-gold);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+}
+
+.ranking-btn:hover {
+    background: rgba(212, 175, 55, 0.2);
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
+}
+
+/* Ranking Modal */
+.ranking-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.ranking-modal.hidden {
+    display: none !important;
+}
+
+.ranking-container {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 3px solid var(--bg-gold);
+    border-radius: 12px;
+    width: 500px;
+    max-height: 600px;
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+    overflow: hidden;
+}
+
+.ranking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 2px solid var(--bg-gold);
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.ranking-header h2 {
+    color: var(--bg-gold);
+    font-size: 24px;
+    margin: 0;
+}
+
+.ranking-close {
+    background: none;
+    border: none;
+    color: var(--bg-gold);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.ranking-close:hover {
+    transform: scale(1.2);
+}
+
+.ranking-list {
+    padding: 15px;
+    max-height: 520px;
+    overflow-y: auto;
+    color: var(--text-main);
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: rgba(212, 175, 55, 0.05);
+    border-left: 3px solid var(--bg-gold);
+    border-radius: 4px;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+
+.ranking-item:hover {
+    background: rgba(212, 175, 55, 0.15);
+    transform: translateX(5px);
+}
+
+.ranking-position {
+    font-weight: bold;
+    color: var(--bg-gold);
+    width: 40px;
+    font-size: 18px;
+}
+
+.ranking-position.top1 {
+    color: #ffd700;
+    font-size: 20px;
+}
+
+.ranking-position.top2 {
+    color: #c0c0c0;
+    font-size: 19px;
+}
+
+.ranking-position.top3 {
+    color: #cd7f32;
+    font-size: 19px;
+}
+
+.ranking-name {
+    flex: 1;
+    padding: 0 15px;
+}
+
+.ranking-level {
+    background: rgba(79, 195, 247, 0.2);
+    color: var(--accent-ice);
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+    min-width: 60px;
+    text-align: right;
+}
+
+.ranking-loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
+}
+
+
     z-index: 100;
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
 }

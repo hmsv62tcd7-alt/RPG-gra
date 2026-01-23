@@ -136,6 +136,22 @@
         <!-- Minimap -->
         <canvas id="minimap"></canvas>
         <div id="gameTime" class="game-time">00:00:00</div>
+        
+        <!-- Ranking Button -->
+        <button id="rankingBtn" class="ranking-btn" title="Ranking graczy">🏆</button>
+        
+        <!-- Ranking Modal -->
+        <div id="rankingModal" class="ranking-modal hidden">
+            <div class="ranking-container">
+                <div class="ranking-header">
+                    <h2>🏆 Ranking Graczy</h2>
+                    <button class="ranking-close" id="closeRanking">✕</button>
+                </div>
+                <div id="rankingList" class="ranking-list">
+                    <div class="ranking-loading">Ładowanie rankingu...</div>
+                </div>
+            </div>
+        </div>
 
         <!-- SKILL BAR (dolny HUD - zawsze widoczny) -->
         <div id="battleHUD" class="battle-hud">

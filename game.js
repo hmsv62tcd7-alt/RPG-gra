@@ -5153,6 +5153,88 @@ function setupAuthListeners() {
     console.log('[Auth] Listeners attached');
 }
 
+// ============================================
+// RANKING SYSTEM
+// ============================================
+
+function initRankingListeners() {
+    const rankingBtn = document.getElementById('rankingBtn');
+    const rankingModal = document.getElementById('rankingModal');
+    const closeRankingBtn = document.getElementById('closeRanking');
+    
+    if (rankingBtn) {
+        rankingBtn.addEventListener('click', showRanking);
+    }
+    
+    if (closeRankingBtn) {
+        closeRankingBtn.addEventListener('click', () => {
+            rankingModal.classList.add('hidden');
+        });
+    }
+    
+    // Zamknij ranking klikając na tło
+    if (rankingModal) {
+        rankingModal.addEventListener('click', (e) => {
+            if (e.target === rankingModal) {
+                rankingModal.classList.add('hidden');
+            }
+        });
+    }
+}
+
+function showRanking() {
+    const rankingModal = document.getElementById('rankingModal');
+    const rankingList = document.getElementById('rankingList');
+    
+    rankingModal.classList.remove('hidden');
+    rankingList.innerHTML = '<div class="ranking-loading">Ładowanie rankingu...</div>';
+    
+    // Pobierz wszystkich graczy z bazy
+    database.ref('users').once('value', (snapshot) => {
+        const players = [];
+        
+        snapshot.forEach((childSnapshot) => {
+            const userData = childSnapshot.val();
+            if (userData && userData.player) {
+                const player = userData.player;
+                players.push({
+                    name: player.name || 'Unknown',
+                    level: player.level || 1
+                });
+            }
+        });
+        
+        // Sortuj po level (malejąco)
+        players.sort((a, b) => (b.level || 0) - (a.level || 0));
+        
+        // Weź top 20
+        const topPlayers = players.slice(0, 20);
+        
+        // Renderuj ranking
+        rankingList.innerHTML = '';
+        topPlayers.forEach((player, index) => {
+            const position = index + 1;
+            const positionClass = position <= 3 ? `top${position}` : '';
+            
+            const rankingItem = document.createElement('div');
+            rankingItem.className = 'ranking-item';
+            rankingItem.innerHTML = `
+                <div class="ranking-position ${positionClass}">${position}.</div>
+                <div class="ranking-name">${escapeHtml(player.name)}</div>
+                <div class="ranking-level">${player.level}LV</div>
+            `;
+            rankingList.appendChild(rankingItem);
+        });
+        
+        if (topPlayers.length === 0) {
+            rankingList.innerHTML = '<div class="ranking-loading">Brak graczy w rankingu</div>';
+        }
+    }).catch(error => {
+        console.error('[Ranking] Error loading players:', error);
+        rankingList.innerHTML = '<div class="ranking-loading">Błąd ładowania rankingu</div>';
+    });
+}
+
 function handleLogin() {
     console.log('[Auth] handleLogin called');
     alert('handleLogin wywołane!'); // DEBUG
@@ -5406,6 +5488,7 @@ window.addEventListener('load', () => {
     console.log('[Init] Page loaded, initializing...');
     game = new Game();
     initChat();
+    initRankingListeners();
     
     // Poczekaj na inicjalizację Firebase auth
     setTimeout(() => {
