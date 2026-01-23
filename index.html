@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Manrope:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="context-menu.css">
 </head>
 <body>
     <!-- LOGIN/REGISTER SCREEN -->
@@ -22,6 +23,67 @@
                 <p id="loginError" class="auth-error"></p>
                 <p style="margin-top: 20px;">Nie masz konta? <button id="showRegisterBtn" class="link-btn">Zarejestruj się</button></p>
             </div>
+                <!-- Player Context Menu (prawy przycisk na graczu) -->
+                <div id="playerContextMenu" class="context-menu hidden">
+                    <div class="context-menu-header">
+                        <span id="contextPlayerName">Gracz</span>
+                    </div>
+                    <button class="context-menu-item" id="contextInviteParty">
+                        <span class="context-icon">👥</span>
+                        Zaproś do Party
+                    </button>
+                    <button class="context-menu-item" id="contextTrade">
+                        <span class="context-icon">💰</span>
+                        Zaproś do Handlu
+                    </button>
+                    <button class="context-menu-item" id="contextAddFriend">
+                        <span class="context-icon">⭐</span>
+                        Dodaj do Znajomych
+                    </button>
+                    <button class="context-menu-item" id="contextWhisper">
+                        <span class="context-icon">💬</span>
+                        Wyślij Wiadomość
+                    </button>
+                </div>
+
+                <!-- Party Panel -->
+                <div id="partyPanel" class="party-panel hidden">
+                    <div class="party-header">
+                        <h3>👥 Grupa</h3>
+                        <button class="party-close" id="closeParty">✕</button>
+                    </div>
+                    <div id="partyMembers" class="party-members">
+                        <div class="party-empty">Nie jesteś w grupie</div>
+                    </div>
+                    <button id="leaveParty" class="party-leave-btn hidden">Opuść Grupę</button>
+                </div>
+
+                <!-- Trade Window -->
+                <div id="tradeWindow" class="trade-window hidden">
+                    <div class="trade-header">
+                        <h3>💰 Handel z: <span id="tradePartnerName">Gracz</span></h3>
+                        <button class="trade-close" id="closeTrade">✕</button>
+                    </div>
+                    <div class="trade-container">
+                        <div class="trade-side">
+                            <h4>Twoje przedmioty</h4>
+                            <div id="tradeYourItems" class="trade-items"></div>
+                            <div class="trade-gold">
+                                <label>Gold: <input type="number" id="tradeYourGold" min="0" value="0"></label>
+                            </div>
+                            <button id="tradeAccept" class="trade-btn">Zaakceptuj</button>
+                        </div>
+                        <div class="trade-side">
+                            <h4>Przedmioty <span id="tradePartnerName2">gracza</span></h4>
+                            <div id="tradePartnerItems" class="trade-items"></div>
+                            <div class="trade-gold">
+                                <span>Gold: <span id="tradePartnerGold">0</span></span>
+                            </div>
+                            <div id="tradePartnerStatus" class="trade-status">Oczekiwanie...</div>
+                        </div>
+                    </div>
+                </div>
+
             <div id="registerForm" class="auth-form hidden">
                 <h3>Rejestracja</h3>
                 <input type="email" id="registerEmail" placeholder="Email" class="auth-input">

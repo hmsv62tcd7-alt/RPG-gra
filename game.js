@@ -1650,6 +1650,21 @@ class Game {
 
         // Canvas click dla interakcji z NPC
         this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        // Prawy przycisk myszy dla context menu na innych gracza
+        this.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.handleCanvasRightClick(e);
+        });
+
+        // Zamknij context menu przy lewym kliknięciu
+        document.addEventListener('click', () => {
+            const contextMenu = document.getElementById('playerContextMenu');
+            if (contextMenu) contextMenu.classList.add('hidden');
+        });
+
+        // Setup context menu buttons
+        this.setupContextMenuHandlers();
+
 
         // Equipment panel tabs
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -6338,43 +6353,283 @@ class Game {
         }, 5000);
     }
 
+    // ========== CONTEXT MENU & INTERACTIONS ==========
+    handleCanvasRightClick(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const clickX = e.clientX - rect.left + this.camera.x;
+        const clickY = e.clientY - rect.top + this.camera.y;
+
+        let clickedPlayer = null;
+        let clickedPlayerId = null;
+
+        for (let id in this.otherPlayers) {
+            const other = this.otherPlayers[id];
+            if (!other || other.currentMap !== this.currentMap) continue;
+
+            const playerLeft = other.x;
+            const playerRight = other.x + this.player.width;
+            const playerTop = other.y;
+            const playerBottom = other.y + this.player.height;
+
+            if (clickX >= playerLeft && clickX <= playerRight &&
+                clickY >= playerTop && clickY <= playerBottom) {
+                clickedPlayer = other;
+                clickedPlayerId = id;
+                break;
+            }
+        }
+
+        if (clickedPlayer) {
+            this.showContextMenu(clickedPlayerId, clickedPlayer, e.clientX, e.clientY);
+        }
+    }
+
+    showContextMenu(playerId, playerData, x, y) {
+        const contextMenu = document.getElementById('playerContextMenu');
+        const playerName = document.getElementById('contextPlayerName');
+        if (!contextMenu || !playerName) return;
+
+        playerName.textContent = playerData.name || 'Gracz';
+        contextMenu.style.left = x + 'px';
+        contextMenu.style.top = y + 'px';
+        contextMenu.classList.remove('hidden');
+        this.selectedPlayerId = playerId;
+        this.selectedPlayerData = playerData;
+    }
+
+    setupContextMenuHandlers() {
+        const closePartyBtn = document.getElementById('closeParty');
+        const leavePartyBtn = document.getElementById('leaveParty');
+        const closeTradeBtn = document.getElementById('closeTrade');
+
+        document.getElementById('contextInviteParty').addEventListener('click', () => {
+            if (this.selectedPlayerId) {
+                this.sendPartyInvite(this.selectedPlayerId);
+                document.getElementById('playerContextMenu').classList.add('hidden');
+            }
+        });
+
+        document.getElementById('contextTrade').addEventListener('click', () => {
+            if (this.selectedPlayerId) {
+                this.sendTradeInvite(this.selectedPlayerId);
+                document.getElementById('playerContextMenu').classList.add('hidden');
+            }
+        });
+
+        document.getElementById('contextAddFriend').addEventListener('click', () => {
+            if (this.selectedPlayerId) {
+                this.sendFriendRequest(this.selectedPlayerId);
+                document.getElementById('playerContextMenu').classList.add('hidden');
+            }
+        });
+
+        document.getElementById('contextWhisper').addEventListener('click', () => {
+            if (this.selectedPlayerData) {
+                const chatInput = document.getElementById('chatInput');
+                if (chatInput) {
+                    chatInput.value = `/w ${this.selectedPlayerData.name} `;
+                    chatInput.focus();
+                }
+                document.getElementById('playerContextMenu').classList.add('hidden');
+            }
+        });
+
+        if (closePartyBtn) {
+            closePartyBtn.addEventListener('click', () => {
+                document.getElementById('partyPanel').classList.add('hidden');
+            });
+        }
+        if (leavePartyBtn) {
+            leavePartyBtn.addEventListener('click', () => {
+                this.leaveParty();
+            });
+        }
+        if (closeTradeBtn) {
+            closeTradeBtn.addEventListener('click', () => {
+                this.cancelTrade();
+            });
+        }
+
+        this.listenForInvites();
+    }
+
+    // ========== PARTY SYSTEM ==========
+    sendPartyInvite(targetPlayerId) {
+        if (!currentUser) return;
+        const inviteData = {
+            from: currentUser.uid,
+            fromName: this.selectedChar?.name || 'Gracz',
+            timestamp: Date.now()
+        };
+        database.ref('invites/' + targetPlayerId + '/party').set(inviteData).then(() => {
+            sendSystemMessage('Wysłano zaproszenie do party!');
+        }).catch((error) => {
+            console.error('[Party] Error sending invite:', error);
+        });
+    }
+
+    listenForInvites() {
+        if (!currentUser) return;
+        database.ref('invites/' + currentUser.uid + '/party').on('value', (snapshot) => {
+            const invite = snapshot.val();
+            if (invite) {
+                const accept = confirm(`${invite.fromName} zaprasza Cię do party. Akceptujesz?`);
+                if (accept) {
+                    this.acceptPartyInvite(invite.from);
+                }
+                database.ref('invites/' + currentUser.uid + '/party').remove();
+            }
+        });
+        database.ref('invites/' + currentUser.uid + '/trade').on('value', (snapshot) => {
+            const invite = snapshot.val();
+            if (invite) {
+                const accept = confirm(`${invite.fromName} zaprasza Cię do handlu. Akceptujesz?`);
+                if (accept) {
+                    this.acceptTradeInvite(invite.from);
+                }
+                database.ref('invites/' + currentUser.uid + '/trade').remove();
+            }
+        });
+    }
+
+    acceptPartyInvite(leaderId) {
+        if (!currentUser) return;
+        const partyData = {
+            uid: currentUser.uid,
+            name: this.selectedChar?.name || 'Gracz',
+            level: this.player.level,
+            hp: this.player.hp,
+            maxHp: this.player.maxHp
+        };
+        database.ref('parties/' + leaderId + '/members/' + currentUser.uid).set(partyData).then(() => {
+            this.currentPartyId = leaderId;
+            this.updatePartyPanel();
+            document.getElementById('partyPanel').classList.remove('hidden');
+            sendSystemMessage('Dołączyłeś do party!');
+        });
+    }
+
+    updatePartyPanel() {
+        if (!this.currentPartyId) return;
+        database.ref('parties/' + this.currentPartyId + '/members').once('value').then((snapshot) => {
+            const members = snapshot.val() || {};
+            const membersList = document.getElementById('partyMembers');
+            const leaveBtn = document.getElementById('leaveParty');
+            if (!membersList) return;
+            membersList.innerHTML = '';
+            if (Object.keys(members).length === 0) {
+                membersList.innerHTML = '<div class="party-empty">Nie jesteś w grupie</div>';
+                leaveBtn.classList.add('hidden');
+            } else {
+                leaveBtn.classList.remove('hidden');
+                for (let uid in members) {
+                    const member = members[uid];
+                    const memberDiv = document.createElement('div');
+                    memberDiv.className = 'party-member';
+                    memberDiv.innerHTML = `
+                        <div class="party-member-name">${member.name} (Lvl ${member.level})</div>
+                        <div class="party-member-hp">HP: ${member.hp}/${member.maxHp}</div>
+                    `;
+                    membersList.appendChild(memberDiv);
+                }
+            }
+        });
+    }
+
+    leaveParty() {
+        if (!this.currentPartyId || !currentUser) return;
+        database.ref('parties/' + this.currentPartyId + '/members/' + currentUser.uid).remove().then(() => {
+            this.currentPartyId = null;
+            document.getElementById('partyPanel').classList.add('hidden');
+            sendSystemMessage('Opuściłeś party.');
+        });
+    }
+
+    // ========== TRADE SYSTEM ==========
+    sendTradeInvite(targetPlayerId) {
+        if (!currentUser) return;
+        const inviteData = {
+            from: currentUser.uid,
+            fromName: this.selectedChar?.name || 'Gracz',
+            timestamp: Date.now()
+        };
+        database.ref('invites/' + targetPlayerId + '/trade').set(inviteData).then(() => {
+            sendSystemMessage('Wysłano zaproszenie do handlu!');
+        }).catch((error) => {
+            console.error('[Trade] Error sending invite:', error);
+        });
+    }
+
+    acceptTradeInvite(partnerId) {
+        if (!currentUser) return;
+        this.currentTradePartnerId = partnerId;
+        this.openTradeWindow();
+    }
+
+    openTradeWindow() {
+        const tradeWindow = document.getElementById('tradeWindow');
+        const partnerName = document.getElementById('tradePartnerName');
+        const partnerName2 = document.getElementById('tradePartnerName2');
+        if (!tradeWindow) return;
+        database.ref('users/' + this.currentTradePartnerId + '/player').once('value').then((snapshot) => {
+            const partner = snapshot.val();
+            if (partner) {
+                partnerName.textContent = partner.name;
+                partnerName2.textContent = partner.name;
+            }
+        });
+        tradeWindow.classList.remove('hidden');
+        this.updateTradeWindow();
+    }
+
+    updateTradeWindow() {
+        // TODO: Implementacja wymiany przedmiotów
+    }
+
+    cancelTrade() {
+        const tradeWindow = document.getElementById('tradeWindow');
+        if (tradeWindow) tradeWindow.classList.add('hidden');
+        this.currentTradePartnerId = null;
+    }
+
+    // ========== FRIEND SYSTEM ==========
+    sendFriendRequest(targetPlayerId) {
+        if (!currentUser) return;
+        const requestData = {
+            from: currentUser.uid,
+            fromName: this.selectedChar?.name || 'Gracz',
+            timestamp: Date.now()
+        };
+        database.ref('friendRequests/' + targetPlayerId).push(requestData).then(() => {
+            sendSystemMessage('Wysłano zaproszenie do znajomych!');
+        }).catch((error) => {
+            console.error('[Friends] Error sending request:', error);
+        });
+    }
+
     drawOtherPlayers() {
         const count = Object.keys(this.otherPlayers).length;
         console.log('[Multiplayer] Drawing other players, count:', count, this.otherPlayers);
-        
         for (let id in this.otherPlayers) {
             const other = this.otherPlayers[id];
             if (!other) continue;
-            
-            // Rysuj tylko graczy na tej samej mapie
             if (other.currentMap !== this.currentMap) {
                 console.log('[Multiplayer] Player', id, 'is on different map:', other.currentMap, 'vs', this.currentMap);
                 continue;
             }
-            
             console.log('[Multiplayer] Drawing player:', id, 'at', other.x, other.y);
-            
-            // Rysuj drugiego gracza na mapie
             const centerX = other.x + this.player.width / 2;
             const centerY = other.y + this.player.height / 2;
-            
-            // Cień
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             this.ctx.beginPath();
             this.ctx.ellipse(centerX, centerY + 12, 10, 4, 0, 0, Math.PI * 2);
             this.ctx.fill();
-            
-            // Głowa
             this.ctx.fillStyle = '#d4a574';
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY - 8, 5, 0, Math.PI * 2);
             this.ctx.fill();
-            
-            // Ciało
             this.ctx.fillStyle = '#c04000';
             this.ctx.fillRect(centerX - 7, centerY - 2, 14, 12);
-            
-            // Nazwa nad graczem
             this.ctx.fillStyle = '#FFD700';
             this.ctx.font = 'bold 10px Arial';
             this.ctx.textAlign = 'center';
