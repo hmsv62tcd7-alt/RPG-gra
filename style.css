@@ -280,12 +280,12 @@ canvas {
 }
 
 #gameTime {
-    position: fixed;
-    top: 180px;
+    position: absolute;
+    top: 170px;
     left: 20px;
     width: 150px;
     padding: 8px;
-    background: rgba(6, 8, 12, 0.9);
+    background: rgba(6, 8, 12, 0.95);
     border: 2px solid var(--bg-gold);
     border-radius: 6px;
     text-align: center;
@@ -293,6 +293,10 @@ canvas {
     font-weight: bold;
     color: var(--bg-gold);
     font-family: 'Courier New', monospace;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
     z-index: 100;
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
 }
