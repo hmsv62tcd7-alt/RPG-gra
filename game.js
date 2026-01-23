@@ -3607,6 +3607,9 @@ class Game {
             this.createDamageText(targetCenterX, targetCenterY, actualDamage);
             this.createAttackEffect(playerCenterX, playerCenterY, 'melee');
             
+            // Natychmiast synchronizuj wroga po trafieniu
+            this.syncSingleEnemyToFirebase(target);
+            
         } 
         // ========== MAG - Magic Orb (220px range) - podstawowy atak ==========
         else if (this.player.classType === ClassType.MAG) {
@@ -3805,6 +3808,9 @@ class Game {
                         actualDamage
                     );
                     projectile.alive = false;
+                    
+                    // Natychmiast synchronizuj wroga po trafieniu
+                    this.syncSingleEnemyToFirebase(projectile.targetEnemy);
                 }
             }
             
@@ -6139,6 +6145,7 @@ class Game {
             // Listener dla stanu wrogów (serwerowych)
             database.ref('gameState/map' + this.currentMap + '/enemies').on('value', (snapshot) => {
                 const enemiesData = snapshot.val() || {};
+                console.log('[Multiplayer] Received enemies data:', enemiesData);
                 
                 // Aktualizuj stan wrogów w lokalnej grze
                 for (let i = 0; i < this.enemies.length; i++) {
@@ -6147,7 +6154,10 @@ class Game {
                     
                     if (enemiesData[spawnKey]) {
                         const serverEnemy = enemiesData[spawnKey];
+                        console.log('[Multiplayer] Updating enemy', i, 'HP:', serverEnemy.hp, 'isAlive:', serverEnemy.isAlive);
+                        
                         enemy.hp = serverEnemy.hp;
+                        enemy.maxHp = serverEnemy.maxHp || enemy.maxHp;
                         enemy.isAlive = serverEnemy.isAlive;
                         enemy.respawnTimer = serverEnemy.respawnTimer;
                         // Nie synchronizuj pozycji - AI powinno być lokalne
@@ -6212,6 +6222,7 @@ class Game {
             const enemy = this.enemies[i];
             enemiesData[`enemy_${i}`] = {
                 hp: enemy.hp,
+                maxHp: enemy.maxHp,
                 isAlive: enemy.isAlive,
                 respawnTimer: enemy.respawnTimer,
                 timestamp: Date.now()
@@ -6220,6 +6231,26 @@ class Game {
         
         database.ref('gameState/map' + this.currentMap + '/enemies').set(enemiesData).catch((error) => {
             console.error('[Multiplayer] Error syncing enemies:', error);
+        });
+    }
+
+    syncSingleEnemyToFirebase(enemy) {
+        if (!currentUser || !enemy) return;
+        
+        // Znajdź indeks wroga w tablicy
+        const enemyIndex = this.enemies.indexOf(enemy);
+        if (enemyIndex === -1) return;
+        
+        const enemyData = {
+            hp: enemy.hp,
+            maxHp: enemy.maxHp,
+            isAlive: enemy.isAlive,
+            respawnTimer: enemy.respawnTimer,
+            timestamp: Date.now()
+        };
+        
+        database.ref('gameState/map' + this.currentMap + '/enemies/enemy_' + enemyIndex).set(enemyData).catch((error) => {
+            console.error('[Multiplayer] Error syncing single enemy:', error);
         });
     }
 
