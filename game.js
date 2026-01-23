@@ -1801,6 +1801,7 @@ class Game {
         }
         this.gameRunning = true;
         isInGame = true;  // Gracz wszedł do gry
+        updateNotificationSent = false;  // Zresetuj flagę aby móc wysłać powiadomienie
         // Initialize multiplayer after player is fully ready
         this.initMultiplayer();
         // Send system message to chat
@@ -5213,28 +5214,24 @@ function handleLogout() {
 // ============================================
 
 let versionListener = null;
-let lastNotifiedVersion = localStorage.getItem('lastNotifiedVersion') || null;
+let updateNotificationSent = false;
 
 function initUpdateCheck() {
-    console.log('[Update] Initializing real-time version listener');
-    console.log('[Update] Last notified version:', lastNotifiedVersion);
+    console.log('[Update] Initializing version check');
     
-    // Nasłuchuj zmian wersji w real-time
-    versionListener = database.ref('system/version').on('value', (snapshot) => {
+    // Sprawdź wersję tylko raz na początku sesji
+    database.ref('system/version').once('value', (snapshot) => {
         const latestVersion = snapshot.val();
-        console.log('[Update] Version check - Latest:', latestVersion, 'Current:', GAME_VERSION);
+        console.log('[Update] Initial check - Latest:', latestVersion, 'Current:', GAME_VERSION);
         
-        // Sprawdzaj tylko jeśli jesteś w grze
-        if (isInGame && latestVersion && latestVersion !== GAME_VERSION && latestVersion !== lastNotifiedVersion) {
+        // Jeśli wersja jest inna, wyślij wiadomość (tylko raz w sesji)
+        if (isInGame && latestVersion && latestVersion !== GAME_VERSION && !updateNotificationSent) {
             console.log('[Update] 🔔 NOWA WERSJA DOSTĘPNA!', latestVersion);
-            // Wyślij wiadomość aktualizacji TYLKO RAZ
             sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
-            // Zapamiętaj że wysłaliśmy powiadomienie o tej wersji
-            lastNotifiedVersion = latestVersion;
-            localStorage.setItem('lastNotifiedVersion', latestVersion);
+            updateNotificationSent = true;
         }
     }, (error) => {
-        console.error('[Update] Error setting up version listener:', error);
+        console.error('[Update] Error checking version:', error);
     });
 }
 
