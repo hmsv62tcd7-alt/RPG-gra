@@ -299,25 +299,26 @@ canvas {
 
 /* Ranking Button */
 .ranking-btn {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 60px;
-    height: 60px;
-    font-size: 32px;
-    background: rgba(212, 175, 55, 0.1);
-    border: 2px solid var(--bg-gold);
-    border-radius: 8px;
-    cursor: pointer;
-    z-index: 100;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 70px !important;
+    height: 70px !important;
+    font-size: 40px !important;
+    background: rgba(212, 175, 55, 0.15) !important;
+    border: 3px solid var(--bg-gold) !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    z-index: 9999 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4) !important;
+    padding: 0 !important;
 }
 
 .ranking-btn:hover {
-    background: rgba(212, 175, 55, 0.2);
-    transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
+    background: rgba(212, 175, 55, 0.3) !important;
+    transform: scale(1.15) !important;
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6) !important;
 }
 
 /* Ranking Modal */
