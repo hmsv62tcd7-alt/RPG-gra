@@ -3209,6 +3209,43 @@ class Game {
         this.minimapCtx.fillStyle = '#2d5016';
         this.minimapCtx.fillRect(0, 0, 150, 150);
 
+        // Rysuj teleporty (fioletowe prostokąty)
+        if (this.currentMap === 1 && this.teleportZone) {
+            this.minimapCtx.fillStyle = 'rgba(138, 43, 226, 0.6)';
+            this.minimapCtx.fillRect(
+                this.teleportZone.x * scale,
+                this.teleportZone.y * scale,
+                this.teleportZone.width * scale,
+                this.teleportZone.height * scale
+            );
+            this.minimapCtx.strokeStyle = '#8a2be2';
+            this.minimapCtx.lineWidth = 1;
+            this.minimapCtx.strokeRect(
+                this.teleportZone.x * scale,
+                this.teleportZone.y * scale,
+                this.teleportZone.width * scale,
+                this.teleportZone.height * scale
+            );
+        }
+        
+        if (this.currentMap === 2 && this.returnTeleportZone) {
+            this.minimapCtx.fillStyle = 'rgba(138, 43, 226, 0.6)';
+            this.minimapCtx.fillRect(
+                this.returnTeleportZone.x * scale,
+                this.returnTeleportZone.y * scale,
+                this.returnTeleportZone.width * scale,
+                this.returnTeleportZone.height * scale
+            );
+            this.minimapCtx.strokeStyle = '#8a2be2';
+            this.minimapCtx.lineWidth = 1;
+            this.minimapCtx.strokeRect(
+                this.returnTeleportZone.x * scale,
+                this.returnTeleportZone.y * scale,
+                this.returnTeleportZone.width * scale,
+                this.returnTeleportZone.height * scale
+            );
+        }
+
         // Rysuj gracza (biały punkt)
         const playerMinimapX = this.player.x * scale;
         const playerMinimapY = this.player.y * scale;
@@ -3216,6 +3253,18 @@ class Game {
         this.minimapCtx.beginPath();
         this.minimapCtx.arc(playerMinimapX, playerMinimapY, 3, 0, Math.PI * 2);
         this.minimapCtx.fill();
+
+        // Rysuj innych graczy (niebieskie punkty) - tylko na tej samej mapie
+        this.minimapCtx.fillStyle = '#00bfff';
+        for (let id in this.otherPlayers) {
+            const other = this.otherPlayers[id];
+            if (!other || other.currentMap !== this.currentMap) continue;
+            const otherMinimapX = other.x * scale;
+            const otherMinimapY = other.y * scale;
+            this.minimapCtx.beginPath();
+            this.minimapCtx.arc(otherMinimapX, otherMinimapY, 2.5, 0, Math.PI * 2);
+            this.minimapCtx.fill();
+        }
 
         // Rysuj wrogów (czerwone punkty)
         this.minimapCtx.fillStyle = '#ff0000';
@@ -5150,6 +5199,12 @@ class Game {
         for (let id in this.otherPlayers) {
             const other = this.otherPlayers[id];
             if (!other) continue;
+            
+            // Rysuj tylko graczy na tej samej mapie
+            if (other.currentMap !== this.currentMap) {
+                console.log('[Multiplayer] Player', id, 'is on different map:', other.currentMap, 'vs', this.currentMap);
+                continue;
+            }
             
             console.log('[Multiplayer] Drawing player:', id, 'at', other.x, other.y);
             
