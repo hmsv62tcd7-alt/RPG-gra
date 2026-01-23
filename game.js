@@ -5100,11 +5100,20 @@ function showAuthScreen() {
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('mainMenu').classList.add('hidden');
     document.getElementById('gameContainer').classList.add('hidden');
-    
+}
+
+function showMainMenu() {
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('mainMenu').classList.remove('hidden');
+    document.getElementById('gameContainer').classList.add('hidden');
+}
+
+function setupAuthListeners() {
     const loginBtn = document.getElementById('loginBtn');
     const registerBtn = document.getElementById('registerBtn');
     const showRegisterBtn = document.getElementById('showRegisterBtn');
     const showLoginBtn = document.getElementById('showLoginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
     
     loginBtn.addEventListener('click', handleLogin);
     registerBtn.addEventListener('click', handleRegister);
@@ -5116,14 +5125,6 @@ function showAuthScreen() {
         document.getElementById('registerForm').classList.add('hidden');
         document.getElementById('loginForm').classList.remove('hidden');
     });
-}
-
-function showMainMenu() {
-    document.getElementById('authScreen').classList.add('hidden');
-    document.getElementById('mainMenu').classList.remove('hidden');
-    document.getElementById('gameContainer').classList.add('hidden');
-    
-    const logoutBtn = document.getElementById('logoutBtn');
     logoutBtn.addEventListener('click', handleLogout);
 }
 
@@ -5345,4 +5346,5 @@ let game;
 window.addEventListener('load', () => {
     game = new Game();
     initChat();
+    setupAuthListeners();
 });
