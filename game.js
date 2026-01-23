@@ -2519,8 +2519,10 @@ class Game {
         this.player.exp = state.exp || 0;
         this.player.maxExp = state.maxExp || 100;
         this.player.gold = state.gold || 0;
-        this.player.x = state.x !== undefined ? state.x : CONFIG.CANVAS_WIDTH / 2;
-        this.player.y = state.y !== undefined ? state.y : CONFIG.CANVAS_HEIGHT / 2;
+        const safeX = Number.isFinite(state.x) ? state.x : CONFIG.CANVAS_WIDTH / 2;
+        const safeY = Number.isFinite(state.y) ? state.y : CONFIG.CANVAS_HEIGHT / 2;
+        this.player.x = safeX;
+        this.player.y = safeY;
 
         // Przywróć staty na podstawie poziomu
         if (this.player.level > 1) {
