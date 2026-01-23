@@ -5234,25 +5234,20 @@ let updateNotificationSent = false;
 
 function initUpdateCheck() {
     console.log('[Update] Initializing version check');
-    alert('initUpdateCheck wywołane! isInGame: ' + isInGame + ', GAME_VERSION: ' + GAME_VERSION);
     
     // Nasłuchuj zmian wersji w czasie rzeczywistym
     database.ref('system/version').on('value', (snapshot) => {
         const latestVersion = snapshot.val();
         console.log('[Update] Version check:', latestVersion, 'vs', GAME_VERSION, 'isInGame:', isInGame);
         
-        alert('Firebase wersja: ' + latestVersion + ', Gra: ' + GAME_VERSION + ', isInGame: ' + isInGame + ', sent: ' + updateNotificationSent);
-        
         // Jeśli wersja jest inna, wyślij wiadomość (tylko raz w sesji)
         if (isInGame && latestVersion && latestVersion !== GAME_VERSION && !updateNotificationSent) {
-            alert('WYSYLAM WIADOMOSC NA CZAT!');
             console.log('[Update] WYSYLAM WIADOMOSC!');
             sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
             updateNotificationSent = true;
         }
     }, (error) => {
         console.error('[Update] Error checking version:', error);
-        alert('Błąd sprawdzania wersji: ' + error);
     });
 }
 
@@ -5268,13 +5263,10 @@ function sendSystemMessage(text) {
     };
     
     console.log('[Chat] Sending system message:', text);
-    alert('Wysyłam na Firebase: ' + text);
     
     database.ref('chat/messages').push(message).then(() => {
-        alert('Wiadomość wysłana do Firebase!');
-        console.log('[Chat] System message sent');
+        console.log('[Chat] System message sent successfully');
     }).catch(error => {
-        alert('BŁĄD wysłania: ' + error.message);
         console.error('[Chat] System message error:', error);
     });
 }
@@ -5323,7 +5315,13 @@ function sendChatMessage() {
 }
 
 function displayChatMessage(message) {
+    console.log('[Chat] Displaying message:', message);
     const chatMessages = document.getElementById('chatMessages');
+    
+    if (!chatMessages) {
+        console.error('[Chat] chatMessages element not found!');
+        return;
+    }
     
     const messageDiv = document.createElement('div');
     messageDiv.className = message.type === 'system' ? 'chat-message chat-system' : 'chat-message';
@@ -5348,6 +5346,8 @@ function displayChatMessage(message) {
     
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    console.log('[Chat] Message displayed');
     
     // Keep only last 50 messages in DOM
     while (chatMessages.children.length > 50) {
