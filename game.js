@@ -1379,6 +1379,13 @@ class Enemy {
     takeDamage(damage) {
         const actualDamage = Math.max(1, damage - this.defense);
         this.hp = Math.max(0, this.hp - actualDamage);
+        
+        // Jeśli HP spadło do 0, oznacz jako martwego
+        if (this.hp <= 0) {
+            this.isAlive = false;
+            this.respawnTimer = this.respawnTime; // Ustaw timer respawnu na 10 sekund
+        }
+        
         return actualDamage;
     }
 
@@ -2189,6 +2196,8 @@ class Game {
         // Now initialize game world and player with selected class
         this.initGame();
         this.applySelectedClassToPlayer();
+        // Załaduj umiejętności natychmiast bez opóźnienia
+        this.updateSkillUI();
         // Try to load saved game state for this character
         if (window.Autosave) {
             const savedState = window.Autosave.loadGameState(index);
@@ -2943,6 +2952,40 @@ class Game {
         // Update projektyli
         this.updateProjectiles();
         
+        // Auto-attack dla Maga i Huntera gdy mają cel w zasięgu
+        if (this.player.currentTarget && this.player.currentTarget.isAlive) {
+            const playerCenterX = this.player.x + this.player.width / 2;
+            const playerCenterY = this.player.y + this.player.height / 2;
+            const targetCenterX = this.player.currentTarget.x + this.player.currentTarget.width / 2;
+            const targetCenterY = this.player.currentTarget.y + this.player.currentTarget.height / 2;
+            
+            const dx = targetCenterX - playerCenterX;
+            const dy = targetCenterY - playerCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Wojownik - auto-atakuje z 40px gdy w zasięgu
+            if (this.player.classType === ClassType.WOJ) {
+                const meleeRange = 40;
+                if (distance <= meleeRange) {
+                    this.basicAttack();
+                }
+            }
+            // Mag - auto-atakuje z 220px gdy w zasięgu
+            else if (this.player.classType === ClassType.MAG) {
+                const magicRange = 220;
+                if (distance <= magicRange) {
+                    this.basicAttack();
+                }
+            }
+            // Hunter - auto-atakuje z 260px gdy w zasięgu
+            else if (this.player.classType === ClassType.HUNTER) {
+                const arrowRange = 260;
+                if (distance <= arrowRange) {
+                    this.basicAttack();
+                }
+            }
+        }
+        
         this.updateHUD();
         
         // Synchronizuj pozycję gracza na Firebase (co 200ms)
@@ -3311,6 +3354,43 @@ class Game {
         if (battlePlayerName) battlePlayerName.textContent = `${this.player.name || 'Ty'} (LVL ${this.player.level})`;
     }
 
+    updateSkillUI() {
+        // Aktualizuj ikony i nazwy umiejętności na podstawie klasy postaci
+        if (this.player.classType === ClassType.MAG) {
+            // Mag: Skill1=Kula Magii, Skill2=Kula Ognia, Skill3=Obrona
+            document.getElementById('skill1Icon').textContent = '🔵';
+            document.getElementById('skill1Name').textContent = 'Kula Magii';
+            
+            document.getElementById('skill2Icon').textContent = '🔥';
+            document.getElementById('skill2Name').textContent = 'Kula Ognia';
+            
+            document.getElementById('skill3Icon').textContent = '🛡';
+            document.getElementById('skill3Name').textContent = 'Obrona';
+        } 
+        else if (this.player.classType === ClassType.HUNTER) {
+            // Hunter: Skill1=Atak (Strzała)
+            document.getElementById('skill1Icon').textContent = '🏹';
+            document.getElementById('skill1Name').textContent = 'Strzała';
+            
+            document.getElementById('skill2Icon').textContent = '⚡';
+            document.getElementById('skill2Name').textContent = 'Volley';
+            
+            document.getElementById('skill3Icon').textContent = '⭐';
+            document.getElementById('skill3Name').textContent = 'Pułapka';
+        } 
+        else if (this.player.classType === ClassType.WOJ) {
+            // Wojownik: Skill1=Atak (Miecz)
+            document.getElementById('skill1Icon').textContent = '⚔';
+            document.getElementById('skill1Name').textContent = 'Cios';
+            
+            document.getElementById('skill2Icon').textContent = '🗡';
+            document.getElementById('skill2Name').textContent = 'Pancerna Tafa';
+            
+            document.getElementById('skill3Icon').textContent = '💪';
+            document.getElementById('skill3Name').textContent = 'Furia';
+        }
+    }
+
     updateHUD() {
         const hpPercent = (this.player.hp / this.player.maxHp) * 100;
         document.getElementById('hpFill').style.width = hpPercent + '%';
@@ -3487,20 +3567,7 @@ class Game {
             return; // Cel nie żyje
         }
         
-        // MAG nie może używać zwykłego ataku - musi użyć skillów!
-        if (this.player.classType === ClassType.MAG) {
-            return;
-        }
-        
         const now = Date.now();
-        const cooldown = this.player.classType === ClassType.HUNTER ? 750 : 1000; // WOJ
-        
-        if (now - this.player.lastAttackTime < cooldown) {
-            return; // Cooldown nie minął
-        }
-        
-        this.player.lastAttackTime = now;
-        
         const target = this.player.currentTarget;
         const playerCenterX = this.player.x + this.player.width / 2;
         const playerCenterY = this.player.y + this.player.height / 2;
@@ -3514,6 +3581,11 @@ class Game {
         // ========== WOJOWNIK - Melee (40px range) ==========
         if (this.player.classType === ClassType.WOJ) {
             const meleeRange = 40;
+            const cooldown = 1000;
+            
+            if (now - this.player.lastAttackTime < cooldown) {
+                return; // Cooldown nie minął
+            }
             
             // Jeśli za daleko, idź do celu
             if (distance > meleeRange) {
@@ -3522,6 +3594,7 @@ class Game {
             }
             
             // W zasięgu - wykonaj cios
+            this.player.lastAttackTime = now;
             const stats = this.player.stats;
             const baseDamage = stats.str * 2 + 5;
             const bonusDamage = this.player.equipmentATK || 0;
@@ -3535,15 +3608,64 @@ class Game {
             this.createAttackEffect(playerCenterX, playerCenterY, 'melee');
             
         } 
-        // ========== HUNTER - Ranged Arrows (260px range) ==========
-        else if (this.player.classType === ClassType.HUNTER) {
-            const arrowRange = 260;
+        // ========== MAG - Magic Orb (220px range) - podstawowy atak ==========
+        else if (this.player.classType === ClassType.MAG) {
+            const magicRange = 220;
+            const cooldown = 800;
             
-            if (distance > arrowRange) {
-                return; // Za daleko
+            if (now - this.player.lastAttackTime < cooldown) {
+                return; // Cooldown nie minął
             }
             
-            // Stwórz projektyl - strzałę
+            // Jeśli za daleko, idź do celu
+            if (distance > magicRange) {
+                this.player.moveToTarget = target;
+                return;
+            }
+            
+            // W zasięgu - zatrzymaj się i atakuj
+            this.player.moveToTarget = null;
+            
+            // W zasięgu - stwórz Kulę Magii
+            this.player.lastAttackTime = now;
+            const stats = this.player.stats;
+            const baseDamage = stats.int * 2 + 3;
+            const bonusDamage = this.player.equipmentATK || 0;
+            const totalDamage = baseDamage + bonusDamage;
+            
+            const projectile = new Projectile(
+                playerCenterX,
+                playerCenterY,
+                targetCenterX,
+                targetCenterY,
+                420, // speed px/s
+                totalDamage,
+                'orb'
+            );
+            
+            projectile.targetEnemy = target;
+            this.projectiles.push(projectile);
+        }
+        // ========== HUNTER - Ranged Arrows (260px range) - podstawowy atak ==========
+        else if (this.player.classType === ClassType.HUNTER) {
+            const arrowRange = 260;
+            const cooldown = 750;
+            
+            if (now - this.player.lastAttackTime < cooldown) {
+                return; // Cooldown nie minął
+            }
+            
+            // Jeśli za daleko, idź do celu
+            if (distance > arrowRange) {
+                this.player.moveToTarget = target;
+                return;
+            }
+            
+            // W zasięgu - zatrzymaj się i atakuj
+            this.player.moveToTarget = null;
+            
+            // W zasięgu - stwórz strzałę
+            this.player.lastAttackTime = now;
             const stats = this.player.stats;
             const baseDamage = stats.zrn * 2 + stats.str * 1 + 2;
             const bonusDamage = this.player.equipmentATK || 0;
