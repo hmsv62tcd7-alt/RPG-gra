@@ -5003,7 +5003,22 @@ class Game {
         const timeEl = document.getElementById('gameTime');
         if (!timeEl) return;
         
-        const now = new Date();
+        // Jeśli nie mamy server timestamp, pobierz go
+        if (!this.serverTimeOffset) {
+            database.ref('.info/connected').on('value', (snapshot) => {
+                if (snapshot.val() === true) {
+                    // Synchronizuj czas z serwerem
+                    database.ref('.info/serverTimeOffset').on('value', (offsetSnapshot) => {
+                        this.serverTimeOffset = offsetSnapshot.val() || 0;
+                    });
+                }
+            });
+            this.serverTimeOffset = 0;
+        }
+        
+        // Pobierz czas z serwera + offset
+        const serverTime = Date.now() + (this.serverTimeOffset || 0);
+        const now = new Date(serverTime);
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
@@ -5303,10 +5318,22 @@ function initChat() {
         }
     });
     
-    // Listen to chat messages from Firebase
-    database.ref('chat/messages').orderByChild('timestamp').limitToLast(50).on('child_added', (snapshot) => {
+    // Load last 50 messages only once at start
+    database.ref('chat/messages').orderByChild('timestamp').limitToLast(50).once('value', (snapshot) => {
+        snapshot.forEach((childSnapshot) => {
+            const message = childSnapshot.val();
+            displayChatMessage(message);
+        });
+    });
+    
+    // Listen ONLY for NEW messages after this moment
+    const startTime = Date.now();
+    database.ref('chat/messages').on('child_added', (snapshot) => {
         const message = snapshot.val();
-        displayChatMessage(message);
+        // Display only NEW messages (po starcie chatu)
+        if (message.timestamp > startTime) {
+            displayChatMessage(message);
+        }
     });
 }
 
