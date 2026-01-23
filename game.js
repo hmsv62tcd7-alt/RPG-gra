@@ -5267,7 +5267,14 @@ function sendSystemMessage(text) {
         timestamp: Date.now()
     };
     
-    database.ref('chat/messages').push(message).catch(error => {
+    console.log('[Chat] Sending system message:', text);
+    alert('Wysyłam na Firebase: ' + text);
+    
+    database.ref('chat/messages').push(message).then(() => {
+        alert('Wiadomość wysłana do Firebase!');
+        console.log('[Chat] System message sent');
+    }).catch(error => {
+        alert('BŁĄD wysłania: ' + error.message);
         console.error('[Chat] System message error:', error);
     });
 }
