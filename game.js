@@ -5213,21 +5213,33 @@ function handleLogout() {
 // ============================================
 
 function initUpdateCheck() {
-    // Sprawdź wersję gry co 10 sekund, gdy gracz jest w grze
+    console.log('[Update] Initialization started, checking version every 3 seconds');
+    
+    // Sprawdź wersję gry co 3 sekundy, gdy gracz jest w grze (zmienione z 10 na 3 do testowania)
     let updateCheckInterval = setInterval(() => {
-        if (!isInGame) return;
+        if (!isInGame) {
+            console.log('[Update] Not in game, skipping check');
+            return;
+        }
+        
+        console.log('[Update] Checking version... Current:', GAME_VERSION);
         
         database.ref('system/version').once('value', (snapshot) => {
             const latestVersion = snapshot.val();
+            console.log('[Update] Latest version from Firebase:', latestVersion);
+            
             if (latestVersion && latestVersion !== GAME_VERSION) {
-                console.log('[Update] Nowa wersja dostępna:', latestVersion, 'aktualna:', GAME_VERSION);
+                console.log('[Update] Nowa wersja dostępna!', latestVersion, 'vs', GAME_VERSION);
                 // Wyślij wiadomość aktualizacji
                 sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
+            } else {
+                console.log('[Update] Wersje są równe, nie wysyłam wiadomości');
             }
         }).catch(error => {
             console.error('[Update] Error checking version:', error);
         });
-    }, 10000); // Co 10 sekund
+    }, 3000); // Co 3 sekundy (zmienione z 10 dla szybszego testowania)
+
 }
 
 // ============================================
