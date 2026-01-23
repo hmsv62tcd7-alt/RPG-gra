@@ -1801,7 +1801,7 @@ class Game {
         }
         this.gameRunning = true;
         isInGame = true;  // Gracz wszedł do gry
-        updateNotificationSent = false;  // Zresetuj flagę aby móc wysłać powiadomienie
+        lastNotifiedUpdateVersion = null;  // Zresetuj żeby móc wysłać nowe powiadomienia
         // Initialize multiplayer after player is fully ready
         this.initMultiplayer();
         // Send system message to chat
@@ -5230,7 +5230,7 @@ function handleLogout() {
 // ============================================
 
 let versionListener = null;
-let updateNotificationSent = false;
+let lastNotifiedUpdateVersion = null;  // Zapamiętuj którą wersję już powiadomiłeś
 
 function initUpdateCheck() {
     console.log('[Update] Initializing version check');
@@ -5240,11 +5240,14 @@ function initUpdateCheck() {
         const latestVersion = snapshot.val();
         console.log('[Update] Version check:', latestVersion, 'vs', GAME_VERSION, 'isInGame:', isInGame);
         
-        // Jeśli wersja jest inna, wyślij wiadomość (tylko raz w sesji)
-        if (isInGame && latestVersion && latestVersion !== GAME_VERSION && !updateNotificationSent) {
+        // Wyślij wiadomość jeśli:
+        // 1. Jesteś w grze
+        // 2. Wersja z Firebase jest inna niż wersja gry
+        // 3. To jest inna wersja niż ostatnia którą powiadomiłeś
+        if (isInGame && latestVersion && latestVersion !== GAME_VERSION && latestVersion !== lastNotifiedUpdateVersion) {
             console.log('[Update] WYSYLAM WIADOMOSC!');
             sendSystemMessage(`⚠️ AKTUALIZACJA: Dostępna nowa wersja gry (${latestVersion}). Proszę zrestartuj grę!`);
-            updateNotificationSent = true;
+            lastNotifiedUpdateVersion = latestVersion;  // Zapamiętaj że o tej wersji już powiadomiłeś
         }
     }, (error) => {
         console.error('[Update] Error checking version:', error);
