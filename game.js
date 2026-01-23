@@ -182,11 +182,12 @@ class Player {
         
         // Equipment
         this.equipment = {
-            weapon: null,      // Broń
-            armor: null,       // Zbroja
             helmet: null,      // Hełm
+            weapon: null,      // Broń
             shield: null,      // Tarcza
-            accessory: null    // Akcesoria
+            accessory: null,   // Pierścionek
+            boots: null,       // Buty
+            necklace: null     // Naszyjnik
         };
         
         // Equipment bonuses
@@ -1239,6 +1240,48 @@ class Game {
         this.setupEventListeners();
     }
 
+    centerPanel(panel) {
+        if (!panel) return;
+        panel.style.left = '50%';
+        panel.style.top = '50%';
+        panel.style.transform = 'translate(-50%, -50%)';
+    }
+
+    makePanelDraggable(panelId) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        const handle = panel.querySelector('.panel-header') || panel;
+        let isDragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            panel.style.left = `${e.clientX - offsetX}px`;
+            panel.style.top = `${e.clientY - offsetY}px`;
+            panel.style.transform = 'none';
+            panel.dataset.dragged = 'true';
+        };
+
+        const onMouseUp = () => {
+            isDragging = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        handle.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return; // tylko lewy przycisk
+            isDragging = true;
+            const rect = panel.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            panel.style.transform = 'none';
+            panel.dataset.dragged = 'true';
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    }
+
     // ============================================
     // INICJALIZACJA
     // ============================================
@@ -1330,6 +1373,10 @@ class Game {
                 if (eqPanel) eqPanel.classList.remove('visible');
             });
         }
+
+        // Draggable panels (inventory, equipment)
+        this.makePanelDraggable('inventoryPanel');
+        this.makePanelDraggable('equipmentPanel');
 
         // Dialogue continue button
         const dialogueContinue = document.getElementById('dialogueContinue');
@@ -2159,7 +2206,10 @@ class Game {
         if (key === 'i' || key === 'I') {
             const invPanel = document.getElementById('inventoryPanel');
             if (invPanel) {
-                invPanel.classList.toggle('visible');
+                const nowVisible = invPanel.classList.toggle('visible');
+                if (nowVisible && !invPanel.dataset.dragged) {
+                    this.centerPanel(invPanel);
+                }
             }
         }
 
@@ -2167,7 +2217,10 @@ class Game {
         if (key === 'c' || key === 'C') {
             const eqPanel = document.getElementById('equipmentPanel');
             if (eqPanel) {
-                eqPanel.classList.toggle('visible');
+                const nowVisible = eqPanel.classList.toggle('visible');
+                if (nowVisible && !eqPanel.dataset.dragged) {
+                    this.centerPanel(eqPanel);
+                }
             }
         }
 
@@ -2838,6 +2891,24 @@ class Game {
         const eqPanel = document.getElementById('equipmentPanel');
         if (!eqPanel) return;
         
+        // Map slot types to emojis
+        const slotEmojis = {
+            helmet: '⛑',
+            weapon: '⚔',
+            shield: '🛡',
+            accessory: '', // renderowane CSS (diament)
+            boots: '',      // renderowane CSS (but)
+            necklace: ''    // renderowane CSS (łańcuch)
+        };
+        const slotTitles = {
+            helmet: 'Hełm',
+            weapon: 'Broń',
+            shield: 'Tarcza/Orb',
+            accessory: 'Pierścionek',
+            boots: 'Buty',
+            necklace: 'Naszyjnik'
+        };
+        
         // Update equipment slots
         const slots = eqPanel.querySelectorAll('.equipment-slot');
         slots.forEach(slot => {
@@ -2845,16 +2916,13 @@ class Game {
             const item = this.player.equipment[slotType];
             
             if (item) {
-                slot.innerHTML = item.icon || '?';
+                slot.innerHTML = item.icon || '';
                 slot.classList.add('occupied');
                 slot.title = `${item.name}`;
             } else {
-                slot.innerHTML = ['helmet', 'armor', 'weapon', 'shield', 'accessory'][['helmet', 'armor', 'weapon', 'shield', 'accessory'].indexOf(slotType)] === 'helmet' ? '👤' :
-                                 ['helmet', 'armor', 'weapon', 'shield', 'accessory'][['helmet', 'armor', 'weapon', 'shield', 'accessory'].indexOf(slotType)] === 'armor' ? '🛡' :
-                                 ['helmet', 'armor', 'weapon', 'shield', 'accessory'][['helmet', 'armor', 'weapon', 'shield', 'accessory'].indexOf(slotType)] === 'weapon' ? '⚔' :
-                                 ['helmet', 'armor', 'weapon', 'shield', 'accessory'][['helmet', 'armor', 'weapon', 'shield', 'accessory'].indexOf(slotType)] === 'shield' ? '🔰' : '💍';
+                slot.innerHTML = slotEmojis[slotType] || '';
                 slot.classList.remove('occupied');
-                slot.title = `Puste - ${slotType}`;
+                slot.title = slotTitles[slotType] || '';
             }
             
             // Attach right-click handler

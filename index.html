@@ -78,7 +78,7 @@
         <!-- INVENTORY PANEL -->
         <div id="inventoryPanel" class="inventory-panel">
             <div class="panel-header">
-                <div class="inventory-title">🎒 Ekwipunek</div>
+                <div class="inventory-title">🎒 Torba</div>
                 <button id="closeInventoryBtn" class="close-btn">✕</button>
             </div>
             <div id="inventoryGrid" class="inventory-grid"></div>
@@ -87,43 +87,86 @@
         <!-- EQUIPMENT PANEL -->
         <div id="equipmentPanel" class="equipment-panel">
             <div class="panel-header">
-                <div class="equipment-title">⚔ Ekwipunek</div>
+                <div class="equipment-title">🎒 Torba</div>
                 <button id="closeEquipmentBtn" class="close-btn">✕</button>
             </div>
-            <div class="equipment-tabs">
-                <button class="tab-btn active" data-tab="equipped">Wyposażenie</button>
-                <button class="tab-btn" data-tab="shop">Sklep</button>
-            </div>
             
-            <!-- EQUIPPED TAB -->
-            <div id="equippedTab" class="equipment-tab active">
-                <div class="equipment-slots">
-                    <div class="equipment-body">
-                        <div class="equipment-slot helmet-slot" data-slot="helmet" title="Hełm - Prawy klik: Załóż/Zdejmij">👤</div>
-                        <div class="equipment-slot armor-slot" data-slot="armor" title="Zbroja - Prawy klik: Załóż/Zdejmij">🛡</div>
+            <!-- CHARACTER EQUIPMENT -->
+            <div class="equipment-display">
+                <!-- Slots wokół postaci -->
+                <div class="equipment-slots-grid">
+                    <!-- Hełm (top center) -->
+                    <div class="slot-position helmet-pos">
+                        <div class="equipment-slot helmet-slot" data-slot="helmet" title="Hełm - Prawy klik: Załóż/Zdejmij">⛑</div>
+                    </div>
+                    
+                    <!-- Broń (left top) -->
+                    <div class="slot-position weapon-pos">
                         <div class="equipment-slot weapon-slot" data-slot="weapon" title="Broń - Prawy klik: Załóż/Zdejmij">⚔</div>
-                        <div class="equipment-slot shield-slot" data-slot="shield" title="Tarcza - Prawy klik: Załóż/Zdejmij">🔰</div>
-                        <div class="equipment-slot accessory-slot" data-slot="accessory" title="Akcesoria - Prawy klik: Załóż/Zdejmij">💍</div>
                     </div>
-                    <div class="equipment-stats">
-                        <div class="stat-row">
-                            <span class="stat-label">ATK:</span>
-                            <span class="stat-value" id="eqATK">0</span>
+                    
+                    <!-- Postać na środku -->
+                    <div class="character-model">
+                        <div class="character-visual">
+                            <div class="character-body">
+                                <div class="head"></div>
+                                <div class="body"></div>
+                                <div class="arms">
+                                    <div class="arm left-arm"></div>
+                                    <div class="arm right-arm"></div>
+                                </div>
+                                <div class="legs">
+                                    <div class="leg left-leg"></div>
+                                    <div class="leg right-leg"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="stat-row">
-                            <span class="stat-label">DEF:</span>
-                            <span class="stat-value" id="eqDEF">0</span>
-                        </div>
+                    </div>
+                    
+                    <!-- Tarcza (left bottom) -->
+                    <div class="slot-position shield-pos">
+                        <div class="equipment-slot shield-slot" data-slot="shield" title="Tarcza/Orb - Prawy klik: Załóż/Zdejmij">🛡</div>
+                    </div>
+                    
+                    <!-- Pierścionek (right center) -->
+                    <div class="slot-position accessory-pos">
+                        <div class="equipment-slot accessory-slot" data-slot="accessory" title="Pierścionek - Prawy klik: Załóż/Zdejmij">💍</div>
+                    </div>
+                    
+                    <!-- Buty (bottom center) -->
+                    <div class="slot-position boots-pos">
+                        <div class="equipment-slot boots-slot" data-slot="boots" title="Buty - Prawy klik: Załóż/Zdejmij">👢</div>
+                    </div>
+                    
+                    <!-- Naszyjnik (bottom center, under buty) -->
+                    <div class="slot-position necklace-pos">
+                        <div class="equipment-slot necklace-slot" data-slot="necklace" title="Naszyjnik - Prawy klik: Załóż/Zdejmij">⛓</div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- SHOP TAB -->
-            <div id="shopTab" class="equipment-tab">
-                <div class="shop-info">
-                    <div class="gold-display">Złoto: <span id="shopGold">0</span></div>
+                
+                <!-- Stats -->
+                <div class="equipment-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">ATK:</span>
+                        <span class="stat-value" id="eqATK">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">DEF:</span>
+                        <span class="stat-value" id="eqDEF">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">STR:</span>
+                        <span class="stat-value" id="eqSTR">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">INT:</span>
+                        <span class="stat-value" id="eqINT">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">ZRN:</span>
+                        <span class="stat-value" id="eqZRN">0</span>
+                    </div>
                 </div>
-                <div id="shopGrid" class="shop-grid"></div>
             </div>
         </div>
 
