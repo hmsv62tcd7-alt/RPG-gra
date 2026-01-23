@@ -1521,6 +1521,17 @@ class Game {
 
         // Multiplayer
         this.otherPlayers = {};     // Inni gracze online
+        this.friendsList = [];      // Lista znajomych
+        this.incomingFriendRequests = [];
+
+        // Trade & Whisper
+        this.tradeOfferSlots = new Set();
+        this.tradeOfferGold = 0;
+        this.tradeAccepted = false;
+        this.tradeTimeout = null;
+        this.tradeApplied = false;
+        this.whisperChats = {};
+        this.currentWhisperWith = null;
 
         // Camera system
         this.cameraX = 0;
@@ -1530,6 +1541,56 @@ class Game {
         this.cameraSmooth = 0.1; // Smooth camera follow (0-1, higher = faster)
 
         this.setupEventListeners();
+        this.initToastSystem();
+    }
+
+    // ========== TOAST NOTIFICATION SYSTEM ==========
+    initToastSystem() {
+        const container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:20000;';
+        document.body.appendChild(container);
+    }
+
+    showToast(message, type = 'info', duration = 3000) {
+        const container = document.getElementById('toast-container') || document.body;
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.style.cssText = `
+            background: ${type === 'success' ? '#44ff44' : type === 'error' ? '#ff4444' : '#4a90e2'};
+            color: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            min-width: 250px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease-out;
+        `;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), duration);
+    }
+
+    playSound(type = 'click') {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            if (type === 'success') {
+                osc.frequency.setValueAtTime(400, audioContext.currentTime);
+                osc.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+            } else if (type === 'error') {
+                osc.frequency.setValueAtTime(200, audioContext.currentTime);
+            } else {
+                osc.frequency.setValueAtTime(300, audioContext.currentTime);
+            }
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.1);
+        } catch (e) {}
     }
 
     centerPanel(panel) {
@@ -1675,6 +1736,14 @@ class Game {
                 if (hud) hud.classList.add('hidden');
             });
         }
+
+        // Friends panel toggle (hotkey F)
+        const friendsPanelToggle = (e) => {
+            if ((e.key === 'f' || e.key === 'F') && document.activeElement.id !== 'chatInput') {
+                this.showFriendsPanel();
+            }
+        };
+        document.addEventListener('keydown', friendsPanelToggle);
 
 
         // Equipment panel tabs
@@ -6455,6 +6524,8 @@ class Game {
         }
 
         this.listenForInvites();
+        this.loadFriendsList();
+        this.listenForFriendRequests();
     }
 
     // ========== LEFT-CLICK PLAYER SELECTION ==========
@@ -6591,16 +6662,40 @@ class Game {
         return (a < b) ? `${a}_${b}` : `${b}_${a}`;
     }
 
+    canAcceptTrade() {
+        if (!this.player || !this.player.inventory) return false;
+        const emptySlots = this.player.inventory.slots.filter(s => s === null).length;
+        const partnerOffer = this.getPartnerCurrentOffer();
+        const itemsIn = (partnerOffer && partnerOffer.items) ? partnerOffer.items.length : 0;
+        if (itemsIn > emptySlots) {
+            this.showToast('Brak miejsca w ekwipunku!', 'error');
+            return false;
+        }
+        const myGold = this.player.gold || 0;
+        const goldNeeded = (partnerOffer && partnerOffer.gold) ? partnerOffer.gold : 0;
+        if (myGold < goldNeeded) {
+            this.showToast(`Brakuje złota! Potrzebujesz ${goldNeeded}, masz ${myGold}`, 'error');
+            return false;
+        }
+        return true;
+    }
+
+    getPartnerCurrentOffer() {
+        if (!this.tradeState || !this.currentTradePartnerId) return null;
+        return this.tradeState.offers && this.tradeState.offers[this.currentTradePartnerId];
+    }
+
     startTradeSession(partnerId) {
         if (!currentUser) return;
         const tradeId = this.getTradeIdFor(partnerId);
         if (!tradeId) return;
         this.currentTradeId = tradeId;
-        this.tradeOfferSlots = this.tradeOfferSlots || new Set();
-        this.tradeOfferGold = this.tradeOfferGold || 0;
+        this.tradeOfferSlots = new Set();
+        this.tradeOfferGold = 0;
         this.tradeAccepted = false;
+        this.tradeApplied = false;
+        this.startTradeTimeout();
         const baseRef = database.ref('trades/' + tradeId);
-        // Initialize if missing
         baseRef.once('value').then((snap) => {
             if (!snap.exists()) {
                 baseRef.set({
@@ -6609,20 +6704,42 @@ class Game {
                         [currentUser.uid]: { items: [], gold: 0, accepted: false },
                         [partnerId]: { items: [], gold: 0, accepted: false }
                     },
-                    completed: false
+                    completed: false,
+                    createdAt: Date.now()
                 });
             }
         });
-        // Listen trade state
         baseRef.on('value', (snap) => {
             this.tradeState = snap.val() || {};
-            // If finalized/completed, apply
+            this.resetTradeTimeout();
             if (this.tradeState && this.tradeState.finalized && !this.tradeApplied) {
                 this.applyTradeFinalization(this.tradeState);
             } else {
                 this.updateTradeWindow();
             }
         });
+    }
+
+    startTradeTimeout() {
+        this.clearTradeTimeout();
+        this.tradeTimeout = setTimeout(() => {
+            if (this.currentTradeId) {
+                this.showToast('Handel wygasł z powodu bezczynności.', 'error');
+                this.playSound('error');
+                database.ref('trades/' + this.currentTradeId).remove();
+                this.cancelTrade();
+            }
+        }, 30000);
+    }
+
+    resetTradeTimeout() {
+        this.clearTradeTimeout();
+        this.startTradeTimeout();
+    }
+
+    clearTradeTimeout() {
+        if (this.tradeTimeout) clearTimeout(this.tradeTimeout);
+        this.tradeTimeout = null;
     }
 
     updateTradeOfferInFirebase() {
@@ -6644,9 +6761,12 @@ class Game {
 
     toggleTradeAccept() {
         if (!currentUser || !this.currentTradeId) return;
+        if (!this.tradeAccepted && !this.canAcceptTrade()) {
+            return;
+        }
         this.tradeAccepted = !this.tradeAccepted;
         this.updateTradeOfferInFirebase();
-        // If both accepted, leader finalizes
+        this.playSound(this.tradeAccepted ? 'success' : 'click');
         const state = this.tradeState || {};
         const mine = currentUser.uid;
         const partner = this.currentTradePartnerId;
@@ -6654,7 +6774,6 @@ class Game {
         const partnerOffer = state.offers && state.offers[partner];
         const leader = this.getTradeIdFor(partner).split('_')[0];
         if (myOffer && partnerOffer && myOffer.accepted && partnerOffer.accepted && mine === leader && !state.finalized) {
-            // Write finalized snapshot
             database.ref('trades/' + this.currentTradeId).update({
                 finalized: { offers: state.offers },
                 completed: true
@@ -6669,22 +6788,25 @@ class Game {
         const offers = finalState.finalized.offers || {};
         const myOffer = offers[mine] || { items: [], gold: 0 };
         const partnerOffer = offers[partner] || { items: [], gold: 0 };
-        // Remove my offered items by slotIndex (from high to low to avoid shifting)
         const toRemove = (myOffer.items || []).map(i => i.slotIndex).sort((a,b)=>b-a);
         toRemove.forEach(idx => {
             if (this.player && this.player.inventory && this.player.inventory.slots[idx]) {
                 this.player.inventory.removeItem(idx);
             }
         });
-        // Add partner items as new stacks
         (partnerOffer.items || []).forEach(it => {
             this.player.inventory.addItem(new Item(it.name, it.icon, 'trade', null, it.quantity || 1));
         });
-        // Adjust gold (if player has gold property)
         if (!this.player.gold) this.player.gold = 0;
         this.player.gold = Math.max(0, (this.player.gold || 0) - (myOffer.gold || 0) + (partnerOffer.gold || 0));
-        sendSystemMessage('Transakcja zakończona. Przedmioty i złoto wymienione.');
+        this.showToast('✅ Handel zakończony!', 'success');
+        this.playSound('success');
         this.tradeApplied = true;
+        setTimeout(() => {
+            if (this.currentTradeId) {
+                database.ref('trades/' + this.currentTradeId).remove().catch(e => console.error('Trade cleanup:', e));
+            }
+        }, 2000);
         this.cancelTrade();
     }
 
@@ -6791,6 +6913,10 @@ class Game {
         this.tradeOfferSlots = new Set();
         this.tradeOfferGold = 0;
         this.tradeAccepted = false;
+        this.clearTradeTimeout();
+        if (this.currentTradeId) {
+            database.ref('trades/' + this.currentTradeId).remove().catch(e => {});
+        }
     }
 
     // ========== FRIEND SYSTEM ==========
@@ -6802,11 +6928,152 @@ class Game {
             timestamp: Date.now()
         };
         database.ref('friendRequests/' + targetPlayerId).push(requestData).then(() => {
-            sendSystemMessage('Wysłano zaproszenie do znajomych!');
+            this.showToast('✅ Zaproszenie do znajomych wysłane!', 'success');
+            this.playSound('success');
         }).catch((error) => {
-            console.error('[Friends] Error sending request:', error);
+            console.error('[Friends] Error:', error);
+            this.showToast('❌ Błąd wysyłania zaproszenia', 'error');
         });
     }
+
+    listenForFriendRequests() {
+        if (!currentUser) return;
+        database.ref('friendRequests/' + currentUser.uid).on('child_added', (snapshot) => {
+            const request = snapshot.val();
+            if (request && request.from !== currentUser.uid) {
+                const accept = confirm(`${request.fromName} wysłał zaproszenie do znajomych. Zaakceptujesz?`);
+                if (accept) {
+                    this.acceptFriendRequest(request.from, snapshot.key);
+                } else {
+                    snapshot.ref.remove();
+                }
+            }
+        });
+    }
+
+    acceptFriendRequest(senderId, requestKey) {
+        if (!currentUser) return;
+        // Add mutual friends
+        database.ref('friends/' + currentUser.uid + '/' + senderId).set({ addedAt: Date.now() });
+        database.ref('friends/' + senderId + '/' + currentUser.uid).set({ addedAt: Date.now() });
+        // Remove request
+        database.ref('friendRequests/' + currentUser.uid + '/' + requestKey).remove();
+        this.showToast('✅ Dodano do znajomych!', 'success');
+        this.playSound('success');
+    }
+
+    loadFriendsList() {
+        if (!currentUser) return;
+        database.ref('friends/' + currentUser.uid).on('value', (snapshot) => {
+            this.friendsList = [];
+            const friends = snapshot.val() || {};
+            for (let friendId in friends) {
+                this.friendsList.push(friendId);
+            }
+        });
+    }
+
+    // ========== WHISPER SYSTEM ==========
+    sendWhisper(recipientId, message) {
+        if (!currentUser || !message.trim()) return;
+        const msgData = {
+            from: currentUser.uid,
+            fromName: this.selectedChar?.name || 'Gracz',
+            text: message.trim(),
+            timestamp: Date.now()
+        };
+        const chatKey = currentUser.uid < recipientId ? `${currentUser.uid}_${recipientId}` : `${recipientId}_${currentUser.uid}`;
+        database.ref('whispers/' + chatKey).push(msgData);
+        this.showToast(`💬 Wiadomość wysłana do gracza`, 'info', 1500);
+    }
+
+    listenToWhispers(senderId) {
+        if (!currentUser) return;
+        const chatKey = currentUser.uid < senderId ? `${currentUser.uid}_${senderId}` : `${senderId}_${currentUser.uid}`;
+        database.ref('whispers/' + chatKey).orderByChild('timestamp').limitToLast(20).on('child_added', (snapshot) => {
+            const msg = snapshot.val();
+            if (!this.whisperChats[senderId]) this.whisperChats[senderId] = [];
+            this.whisperChats[senderId].push(msg);
+            if (msg.from !== currentUser.uid) {
+                this.showToast(`💬 ${msg.fromName}: ${msg.text.substring(0, 30)}...`, 'info', 2000);
+                this.playSound('click');
+            }
+        });
+    }
+
+    // ========== FRIEND & WHISPER UI ==========
+    showFriendsPanel() {
+        let panel = document.getElementById('friendsPanel');
+        if (!panel) {
+            this.createFriendsPanel();
+            panel = document.getElementById('friendsPanel');
+        }
+        if (panel) {
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                this.updateFriendsUI();
+            }
+        }
+    }
+
+    createFriendsPanel() {
+        const panel = document.createElement('div');
+        panel.id = 'friendsPanel';
+        panel.className = 'friends-panel hidden';
+        panel.innerHTML = `
+            <div class="friends-header">
+                <h3>👥 Znajomi</h3>
+                <button class="friends-close" onclick="document.getElementById('friendsPanel').classList.add('hidden')">✕</button>
+            </div>
+            <div id="friendsList" class="friends-list"></div>
+        `;
+        panel.style.cssText = `
+            position: fixed;
+            top: 200px;
+            left: 20px;
+            background: linear-gradient(180deg, #2a2a3e, #1a1a2e);
+            border: 2px solid #4a4a6a;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 220px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 900;
+            color: white;
+            font-family: Arial, sans-serif;
+        `;
+        document.body.appendChild(panel);
+        this.updateFriendsUI();
+    }
+
+    updateFriendsUI() {
+        const list = document.getElementById('friendsList');
+        if (!list) return;
+        list.innerHTML = '';
+        if (this.friendsList.length === 0) {
+            list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">Brak znajomych</div>';
+            return;
+        }
+        this.friendsList.forEach((friendId) => {
+            const item = document.createElement('div');
+            item.style.cssText = `
+                background: rgba(255,255,255,0.05);
+                padding: 10px;
+                margin: 5px 0;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            `;
+            const online = this.otherPlayers[friendId] ? '🟢' : '🔴';
+            item.innerHTML = `
+                <span>${online} ${this.otherPlayers[friendId]?.name || friendId.substring(0, 8)}</span>
+                <button onclick="game.sendWhisper('${friendId}', prompt('Wiadomość:'))" style="background:#4a90e2;border:none;color:white;padding:5px 10px;border-radius:3px;cursor:pointer;">💬</button>
+            `;
+            list.appendChild(item);
+        });
+    }
+
 
     drawOtherPlayers() {
         const count = Object.keys(this.otherPlayers).length;

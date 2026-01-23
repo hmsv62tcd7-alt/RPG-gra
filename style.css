@@ -1505,3 +1505,151 @@ canvas {
 #dialogueModal:not(.hidden) .modal-content {
     animation: dialogueFadeIn 0.3s ease-out;
 }
+
+/* ============== TOAST NOTIFICATIONS ============== */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 20000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#toast-container > div {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* ============== FRIENDS PANEL ============== */
+#friendsPanel {
+    position: fixed;
+    top: 200px;
+    left: 20px;
+    background: linear-gradient(180deg, #2a2a3e, #1a1a2e);
+    border: 2px solid #4a4a6a;
+    border-radius: 8px;
+    padding: 15px;
+    min-width: 220px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 900;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+#friendsPanel.hidden {
+    display: none !important;
+}
+
+#friendsPanel .friends-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #4a4a6a;
+    padding-bottom: 8px;
+}
+
+#friendsPanel .friends-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #ddd;
+}
+
+.friends-close {
+    background: transparent;
+    border: none;
+    color: #ff6b6b;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+.friends-close:hover {
+    color: #ff3b3b;
+}
+
+#friendsList {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.friends-list-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.friends-list-item span {
+    flex: 1;
+}
+
+.friends-whisper-btn {
+    background: #4a90e2;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.friends-whisper-btn:hover {
+    background: #357abd;
+}
+
+/* ============== SELECTED PLAYER HUD ============== */
+.selected-player-hud {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    padding: 8px 12px;
+    background: rgba(26, 26, 46, 0.9);
+    border: 1px solid #4a4a6a;
+    border-radius: 8px;
+    color: #ddd;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10001;
+    font-family: Arial, sans-serif;
+}
+
+.selected-player-hud.hidden {
+    display: none !important;
+}
+
+#selectedPlayerName {
+    font-weight: bold;
+    color: #FFD700;
+}
+
+.selected-player-clear {
+    background: transparent;
+    border: none;
+    color: #ff6b6b;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+    margin-left: auto;
+}
+
+.selected-player-clear:hover {
+    color: #ff3b3b;
+}
