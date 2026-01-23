@@ -6326,6 +6326,14 @@ class Game {
         console.log('[Multiplayer] database:', database);
         console.log('[Multiplayer] this.player:', this.player);
         console.log('[Multiplayer] Initializing with user:', currentUser?.uid);
+
+        // Ustaw bezpieczną mapę startową
+        if (this.player && !Number.isFinite(this.player.currentMap)) {
+            this.player.currentMap = 1;
+        }
+        if (!Number.isFinite(this.currentMap)) {
+            this.currentMap = (this.player && Number.isFinite(this.player.currentMap)) ? this.player.currentMap : 1;
+        }
         
         // Ustaw listener dla innych graczy
         try {
@@ -6343,8 +6351,10 @@ class Game {
                 // Zaktualizuj pozostałych graczy
                 for (let uid in usersData) {
                     if (uid !== currentUser.uid && usersData[uid].player) {
-                        this.otherPlayers[uid] = usersData[uid].player;
-                        console.log('[Multiplayer] Updated player:', uid, usersData[uid].player);
+                        const p = usersData[uid].player;
+                        if (!Number.isFinite(p.currentMap)) p.currentMap = 1;
+                        this.otherPlayers[uid] = p;
+                        console.log('[Multiplayer] Updated player:', uid, p);
                     }
                 }
             }, (error) => {
@@ -6408,7 +6418,7 @@ class Game {
             name: this.selectedChar ? this.selectedChar.name : 'Gracz',
             level: this.player.level || 1,
             className: this.player.className || 'Wojownik',
-            currentMap: this.currentMap,  // Dodaj informację o mapie
+            currentMap: Number.isFinite(this.currentMap) ? this.currentMap : 1,  // Dodaj informację o mapie
             timestamp: Date.now()
         };
         
@@ -7131,6 +7141,7 @@ class Game {
         for (let id in this.otherPlayers) {
             const other = this.otherPlayers[id];
             if (!other) continue;
+            if (!Number.isFinite(other.currentMap)) other.currentMap = 1;
             if (other.currentMap !== this.currentMap) {
                 console.log('[Multiplayer] Player', id, 'is on different map:', other.currentMap, 'vs', this.currentMap);
                 continue;
