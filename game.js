@@ -6542,41 +6542,58 @@ class Game {
         const leavePartyBtn = document.getElementById('leaveParty');
         const closeTradeBtn = document.getElementById('closeTrade');
 
-        document.getElementById('contextInviteParty').addEventListener('click', () => {
-            if (this.selectedPlayerId) {
-                this.sendPartyInvite(this.selectedPlayerId);
-                document.getElementById('playerContextMenu').classList.add('hidden');
-            }
-        });
-
-        document.getElementById('contextTrade').addEventListener('click', () => {
-            if (this.selectedPlayerId) {
-                this.sendTradeInvite(this.selectedPlayerId);
-                document.getElementById('playerContextMenu').classList.add('hidden');
-            }
-        });
-
-        document.getElementById('contextAddFriend').addEventListener('click', () => {
-            if (this.selectedPlayerId) {
-                this.sendFriendRequest(this.selectedPlayerId);
-                document.getElementById('playerContextMenu').classList.add('hidden');
-            }
-        });
-
-        document.getElementById('contextWhisper').addEventListener('click', () => {
-            if (this.selectedPlayerData) {
-                const chatInput = document.getElementById('chatInput');
-                if (chatInput) {
-                    chatInput.value = `/w ${this.selectedPlayerData.name} `;
-                    chatInput.focus();
+        const contextInviteParty = document.getElementById('contextInviteParty');
+        if (contextInviteParty) {
+            contextInviteParty.addEventListener('click', () => {
+                if (this.selectedPlayerId) {
+                    this.sendPartyInvite(this.selectedPlayerId);
+                    const contextMenu = document.getElementById('playerContextMenu');
+                    if (contextMenu) contextMenu.classList.add('hidden');
                 }
-                document.getElementById('playerContextMenu').classList.add('hidden');
-            }
-        });
+            });
+        }
+
+        const contextTrade = document.getElementById('contextTrade');
+        if (contextTrade) {
+            contextTrade.addEventListener('click', () => {
+                if (this.selectedPlayerId) {
+                    this.sendTradeInvite(this.selectedPlayerId);
+                    const contextMenu = document.getElementById('playerContextMenu');
+                    if (contextMenu) contextMenu.classList.add('hidden');
+                }
+            });
+        }
+
+        const contextAddFriend = document.getElementById('contextAddFriend');
+        if (contextAddFriend) {
+            contextAddFriend.addEventListener('click', () => {
+                if (this.selectedPlayerId) {
+                    this.sendFriendRequest(this.selectedPlayerId);
+                    const contextMenu = document.getElementById('playerContextMenu');
+                    if (contextMenu) contextMenu.classList.add('hidden');
+                }
+            });
+        }
+
+        const contextWhisper = document.getElementById('contextWhisper');
+        if (contextWhisper) {
+            contextWhisper.addEventListener('click', () => {
+                if (this.selectedPlayerData) {
+                    const chatInput = document.getElementById('chatInput');
+                    if (chatInput) {
+                        chatInput.value = `/w ${this.selectedPlayerData.name} `;
+                        chatInput.focus();
+                    }
+                    const contextMenu = document.getElementById('playerContextMenu');
+                    if (contextMenu) contextMenu.classList.add('hidden');
+                }
+            });
+        }
 
         if (closePartyBtn) {
             closePartyBtn.addEventListener('click', () => {
-                document.getElementById('partyPanel').classList.add('hidden');
+                const partyPanel = document.getElementById('partyPanel');
+                if (partyPanel) partyPanel.classList.add('hidden');
             });
         }
         if (leavePartyBtn) {
