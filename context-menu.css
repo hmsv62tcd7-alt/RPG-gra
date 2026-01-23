@@ -264,3 +264,30 @@
     border: 1px solid #4a4a6a;
     border-radius: 6px;
 }
+
+/* ===== Selected Player HUD ===== */
+.selected-player-hud {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  padding: 8px 12px;
+  background: rgba(26,26,46,0.9);
+  border: 1px solid #4a4a6a;
+  border-radius: 8px;
+  color: #ddd;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10001;
+}
+.selected-player-hud.hidden { display: none; }
+.selected-player-clear {
+  background: transparent;
+  border: none;
+  color: #ff6b6b;
+  font-size: 14px;
+  cursor: pointer;
+}
+.selected-player-clear:hover { color: #ff3b3b; }

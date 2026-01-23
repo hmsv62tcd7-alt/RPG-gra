@@ -1665,6 +1665,17 @@ class Game {
         // Setup context menu buttons
         this.setupContextMenuHandlers();
 
+        // Selected player HUD clear button
+        const clearSel = document.getElementById('clearSelectedPlayer');
+        if (clearSel) {
+            clearSel.addEventListener('click', () => {
+                this.selectedPlayerId = null;
+                this.selectedPlayerData = null;
+                const hud = document.getElementById('selectedPlayerHud');
+                if (hud) hud.classList.add('hidden');
+            });
+        }
+
 
         // Equipment panel tabs
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1747,7 +1758,12 @@ class Game {
         const worldClickX = clickX + this.cameraX;
         const worldClickY = clickY + this.cameraY;
 
-        // Najpierw sprawdź czy kliknięto na wroga (targeting system)
+        // Najpierw sprawdź, czy kliknięto innego gracza (zaznaczenie celu gracza)
+        if (this.selectPlayerAt(worldClickX, worldClickY)) {
+            return;
+        }
+
+        // Następnie sprawdź czy kliknięto na wroga (targeting system)
         let clickedEnemy = null;
         for (let enemy of this.enemies) {
             if (!enemy.isAlive) continue; // Zignoruj martwych wrogów
@@ -1774,11 +1790,13 @@ class Game {
             return;
         }
 
-        // Jeśli kliknięto na puste miejsce, usuń cel
+        // Jeśli kliknięto na puste miejsce, usuń cel wroga i odznacz gracza
         if (this.player.currentTarget) {
             this.player.currentTarget.isTargeted = false;
             this.player.currentTarget = null;
         }
+        this.selectedPlayerId = null;
+        this.selectedPlayerData = null;
 
         // Sprawdź czy kliknięto na NPC
         for (let npc of this.npcs) {
@@ -6355,33 +6373,19 @@ class Game {
 
     // ========== CONTEXT MENU & INTERACTIONS ==========
     handleCanvasRightClick(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const clickX = e.clientX - rect.left + this.camera.x;
-        const clickY = e.clientY - rect.top + this.camera.y;
-
-        let clickedPlayer = null;
-        let clickedPlayerId = null;
-
-        for (let id in this.otherPlayers) {
-            const other = this.otherPlayers[id];
-            if (!other || other.currentMap !== this.currentMap) continue;
-
-            const playerLeft = other.x;
-            const playerRight = other.x + this.player.width;
-            const playerTop = other.y;
-            const playerBottom = other.y + this.player.height;
-
-            if (clickX >= playerLeft && clickX <= playerRight &&
-                clickY >= playerTop && clickY <= playerBottom) {
-                clickedPlayer = other;
-                clickedPlayerId = id;
-                break;
-            }
+        // Wymagaj wcześniejszego zaznaczenia gracza lewym przyciskiem
+        if (!this.selectedPlayerId || !this.otherPlayers[this.selectedPlayerId]) {
+            sendSystemMessage('Najpierw zaznacz gracza lewym przyciskiem.');
+            return;
         }
 
-        if (clickedPlayer) {
-            this.showContextMenu(clickedPlayerId, clickedPlayer, e.clientX, e.clientY);
+        const selected = this.otherPlayers[this.selectedPlayerId];
+        if (!selected || selected.currentMap !== this.currentMap) {
+            sendSystemMessage('Wybrany gracz nie jest na tej mapie.');
+            return;
         }
+
+        this.showContextMenu(this.selectedPlayerId, selected, e.clientX, e.clientY);
     }
 
     showContextMenu(playerId, playerData, x, y) {
@@ -6451,6 +6455,40 @@ class Game {
         }
 
         this.listenForInvites();
+    }
+
+    // ========== LEFT-CLICK PLAYER SELECTION ==========
+    selectPlayerAt(worldX, worldY) {
+        let foundId = null;
+        let found = null;
+        for (let id in this.otherPlayers) {
+            const other = this.otherPlayers[id];
+            if (!other || other.currentMap !== this.currentMap) continue;
+            const left = other.x;
+            const right = other.x + this.player.width;
+            const top = other.y;
+            const bottom = other.y + this.player.height;
+            if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
+                foundId = id;
+                found = other;
+                break;
+            }
+        }
+        if (foundId) {
+            this.selectedPlayerId = foundId;
+            this.selectedPlayerData = found;
+            sendSystemMessage(`Zaznaczono gracza: ${found.name || 'Gracz'}`);
+            const contextMenu = document.getElementById('playerContextMenu');
+            if (contextMenu) contextMenu.classList.add('hidden');
+            const hud = document.getElementById('selectedPlayerHud');
+            const hudName = document.getElementById('selectedPlayerName');
+            if (hud && hudName) {
+                hudName.textContent = found.name || 'Gracz';
+                hud.classList.remove('hidden');
+            }
+            return true;
+        }
+        return false;
     }
 
     // ========== PARTY SYSTEM ==========
@@ -6546,6 +6584,110 @@ class Game {
     }
 
     // ========== TRADE SYSTEM ==========
+    getTradeIdFor(partnerId) {
+        if (!currentUser || !partnerId) return null;
+        const a = currentUser.uid;
+        const b = partnerId;
+        return (a < b) ? `${a}_${b}` : `${b}_${a}`;
+    }
+
+    startTradeSession(partnerId) {
+        if (!currentUser) return;
+        const tradeId = this.getTradeIdFor(partnerId);
+        if (!tradeId) return;
+        this.currentTradeId = tradeId;
+        this.tradeOfferSlots = this.tradeOfferSlots || new Set();
+        this.tradeOfferGold = this.tradeOfferGold || 0;
+        this.tradeAccepted = false;
+        const baseRef = database.ref('trades/' + tradeId);
+        // Initialize if missing
+        baseRef.once('value').then((snap) => {
+            if (!snap.exists()) {
+                baseRef.set({
+                    participants: { a: currentUser.uid, b: partnerId },
+                    offers: {
+                        [currentUser.uid]: { items: [], gold: 0, accepted: false },
+                        [partnerId]: { items: [], gold: 0, accepted: false }
+                    },
+                    completed: false
+                });
+            }
+        });
+        // Listen trade state
+        baseRef.on('value', (snap) => {
+            this.tradeState = snap.val() || {};
+            // If finalized/completed, apply
+            if (this.tradeState && this.tradeState.finalized && !this.tradeApplied) {
+                this.applyTradeFinalization(this.tradeState);
+            } else {
+                this.updateTradeWindow();
+            }
+        });
+    }
+
+    updateTradeOfferInFirebase() {
+        if (!currentUser || !this.currentTradeId) return;
+        const myId = currentUser.uid;
+        const items = [];
+        if (this.player && this.player.inventory) {
+            this.tradeOfferSlots.forEach((idx) => {
+                const it = this.player.inventory.slots[idx];
+                if (it) items.push({ slotIndex: idx, name: it.name, icon: it.icon, quantity: it.quantity || 1 });
+            });
+        }
+        database.ref(`trades/${this.currentTradeId}/offers/${myId}`).update({
+            items,
+            gold: this.tradeOfferGold || 0,
+            accepted: this.tradeAccepted || false
+        });
+    }
+
+    toggleTradeAccept() {
+        if (!currentUser || !this.currentTradeId) return;
+        this.tradeAccepted = !this.tradeAccepted;
+        this.updateTradeOfferInFirebase();
+        // If both accepted, leader finalizes
+        const state = this.tradeState || {};
+        const mine = currentUser.uid;
+        const partner = this.currentTradePartnerId;
+        const myOffer = state.offers && state.offers[mine];
+        const partnerOffer = state.offers && state.offers[partner];
+        const leader = this.getTradeIdFor(partner).split('_')[0];
+        if (myOffer && partnerOffer && myOffer.accepted && partnerOffer.accepted && mine === leader && !state.finalized) {
+            // Write finalized snapshot
+            database.ref('trades/' + this.currentTradeId).update({
+                finalized: { offers: state.offers },
+                completed: true
+            });
+        }
+    }
+
+    applyTradeFinalization(finalState) {
+        if (!currentUser || !finalState || !finalState.finalized) return;
+        const mine = currentUser.uid;
+        const partner = this.currentTradePartnerId;
+        const offers = finalState.finalized.offers || {};
+        const myOffer = offers[mine] || { items: [], gold: 0 };
+        const partnerOffer = offers[partner] || { items: [], gold: 0 };
+        // Remove my offered items by slotIndex (from high to low to avoid shifting)
+        const toRemove = (myOffer.items || []).map(i => i.slotIndex).sort((a,b)=>b-a);
+        toRemove.forEach(idx => {
+            if (this.player && this.player.inventory && this.player.inventory.slots[idx]) {
+                this.player.inventory.removeItem(idx);
+            }
+        });
+        // Add partner items as new stacks
+        (partnerOffer.items || []).forEach(it => {
+            this.player.inventory.addItem(new Item(it.name, it.icon, 'trade', null, it.quantity || 1));
+        });
+        // Adjust gold (if player has gold property)
+        if (!this.player.gold) this.player.gold = 0;
+        this.player.gold = Math.max(0, (this.player.gold || 0) - (myOffer.gold || 0) + (partnerOffer.gold || 0));
+        sendSystemMessage('Transakcja zakończona. Przedmioty i złoto wymienione.');
+        this.tradeApplied = true;
+        this.cancelTrade();
+    }
+
     sendTradeInvite(targetPlayerId) {
         if (!currentUser) return;
         const inviteData = {
@@ -6555,6 +6697,9 @@ class Game {
         };
         database.ref('invites/' + targetPlayerId + '/trade').set(inviteData).then(() => {
             sendSystemMessage('Wysłano zaproszenie do handlu!');
+            // Pre-init trade session so it exists when accepted
+            this.currentTradePartnerId = targetPlayerId;
+            this.startTradeSession(targetPlayerId);
         }).catch((error) => {
             console.error('[Trade] Error sending invite:', error);
         });
@@ -6563,6 +6708,7 @@ class Game {
     acceptTradeInvite(partnerId) {
         if (!currentUser) return;
         this.currentTradePartnerId = partnerId;
+        this.startTradeSession(partnerId);
         this.openTradeWindow();
     }
 
@@ -6570,6 +6716,8 @@ class Game {
         const tradeWindow = document.getElementById('tradeWindow');
         const partnerName = document.getElementById('tradePartnerName');
         const partnerName2 = document.getElementById('tradePartnerName2');
+        const yourGoldInput = document.getElementById('tradeYourGold');
+        const acceptBtn = document.getElementById('tradeAccept');
         if (!tradeWindow) return;
         database.ref('users/' + this.currentTradePartnerId + '/player').once('value').then((snapshot) => {
             const partner = snapshot.val();
@@ -6578,18 +6726,71 @@ class Game {
                 partnerName2.textContent = partner.name;
             }
         });
+        // Handlers for your gold and accept
+        if (yourGoldInput) {
+            yourGoldInput.oninput = () => {
+                const val = Math.max(0, parseInt(yourGoldInput.value || '0', 10) || 0);
+                yourGoldInput.value = String(val);
+                this.tradeOfferGold = val;
+                this.updateTradeOfferInFirebase();
+            };
+        }
+        if (acceptBtn) {
+            acceptBtn.onclick = () => this.toggleTradeAccept();
+        }
         tradeWindow.classList.remove('hidden');
         this.updateTradeWindow();
     }
 
     updateTradeWindow() {
-        // TODO: Implementacja wymiany przedmiotów
+        const yourItemsEl = document.getElementById('tradeYourItems');
+        const partnerItemsEl = document.getElementById('tradePartnerItems');
+        const partnerGoldEl = document.getElementById('tradePartnerGold');
+        const partnerStatusEl = document.getElementById('tradePartnerStatus');
+        if (!yourItemsEl || !partnerItemsEl) return;
+        // Render your inventory with offer toggles
+        yourItemsEl.innerHTML = '';
+        if (!this.player || !this.player.inventory) return;
+        if (!this.tradeOfferSlots) this.tradeOfferSlots = new Set();
+        this.player.inventory.slots.forEach((item, idx) => {
+            if (!item) return;
+            const el = document.createElement('div');
+            el.className = 'trade-item';
+            const offered = this.tradeOfferSlots.has(idx);
+            el.style.border = offered ? '1px solid #ffd700' : '1px solid transparent';
+            el.innerHTML = `<span>${item.icon || '📦'}</span><span>${item.name} x${item.quantity || 1}</span>`;
+            el.onclick = () => {
+                if (offered) this.tradeOfferSlots.delete(idx); else this.tradeOfferSlots.add(idx);
+                this.updateTradeOfferInFirebase();
+                this.updateTradeWindow();
+            };
+            yourItemsEl.appendChild(el);
+        });
+        // Render partner offer from tradeState
+        partnerItemsEl.innerHTML = '';
+        const state = this.tradeState || {};
+        const partnerId = this.currentTradePartnerId;
+        const pOffer = state.offers && partnerId ? state.offers[partnerId] : null;
+        if (pOffer && Array.isArray(pOffer.items)) {
+            pOffer.items.forEach((it) => {
+                const el = document.createElement('div');
+                el.className = 'trade-item';
+                el.innerHTML = `<span>${it.icon || '📦'}</span><span>${it.name} x${it.quantity || 1}</span>`;
+                partnerItemsEl.appendChild(el);
+            });
+        }
+        if (partnerGoldEl) partnerGoldEl.textContent = String((pOffer && pOffer.gold) || 0);
+        if (partnerStatusEl) partnerStatusEl.textContent = (pOffer && pOffer.accepted) ? '✅ Zaakceptował' : 'Oczekiwanie...';
     }
 
     cancelTrade() {
         const tradeWindow = document.getElementById('tradeWindow');
         if (tradeWindow) tradeWindow.classList.add('hidden');
         this.currentTradePartnerId = null;
+        this.currentTradeId = null;
+        this.tradeOfferSlots = new Set();
+        this.tradeOfferGold = 0;
+        this.tradeAccepted = false;
     }
 
     // ========== FRIEND SYSTEM ==========
@@ -6620,6 +6821,12 @@ class Game {
             console.log('[Multiplayer] Drawing player:', id, 'at', other.x, other.y);
             const centerX = other.x + this.player.width / 2;
             const centerY = other.y + this.player.height / 2;
+            // Highlight selection
+            if (this.selectedPlayerId && id === this.selectedPlayerId) {
+                this.ctx.strokeStyle = '#FFD700';
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(other.x - 2, other.y - 2, this.player.width + 4, this.player.height + 4);
+            }
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             this.ctx.beginPath();
             this.ctx.ellipse(centerX, centerY + 12, 10, 4, 0, 0, Math.PI * 2);
@@ -6630,7 +6837,7 @@ class Game {
             this.ctx.fill();
             this.ctx.fillStyle = '#c04000';
             this.ctx.fillRect(centerX - 7, centerY - 2, 14, 12);
-            this.ctx.fillStyle = '#FFD700';
+            this.ctx.fillStyle = (this.selectedPlayerId && id === this.selectedPlayerId) ? '#00E1FF' : '#FFD700';
             this.ctx.font = 'bold 10px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.fillText(other.name || 'Gracz', centerX, centerY - 18);
