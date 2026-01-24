@@ -2296,6 +2296,8 @@ class Game {
         // hide modal and show gameContainer
         document.getElementById('charModal').classList.add('hidden');
         document.getElementById('gameContainer').classList.remove('hidden');
+        // Resize canvas po pokazaniu kontenera - WAŻNE!
+        this.resizeCanvas();
         // Reset game state if already running
         this.gameRunning = false;
         if (this._gameLoopId) cancelAnimationFrame(this._gameLoopId);
