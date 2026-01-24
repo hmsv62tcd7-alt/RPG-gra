@@ -6846,11 +6846,22 @@ class Game {
             }
         });
         baseRef.on('value', (snap) => {
+            // Jeśli handel został usunięty przez drugą stronę, zamknij okno
+            if (!snap.exists()) {
+                this.cancelTrade();
+                return;
+            }
+
             this.tradeState = snap.val() || {};
             this.resetTradeTimeout();
             if (this.tradeState && this.tradeState.finalized && !this.tradeApplied) {
                 this.applyTradeFinalization(this.tradeState);
             } else {
+                // Jeśli partner zaakceptował i okno jest ukryte, otwórz je u obu graczy
+                const tradeWindow = document.getElementById('tradeWindow');
+                if (tradeWindow && tradeWindow.classList.contains('hidden')) {
+                    this.openTradeWindow();
+                }
                 this.updateTradeWindow();
             }
         });
@@ -7042,6 +7053,7 @@ class Game {
     }
 
     cancelTrade() {
+        const tradeId = this.currentTradeId;
         const tradeWindow = document.getElementById('tradeWindow');
         if (tradeWindow) tradeWindow.classList.add('hidden');
         this.currentTradePartnerId = null;
@@ -7050,8 +7062,9 @@ class Game {
         this.tradeOfferGold = 0;
         this.tradeAccepted = false;
         this.clearTradeTimeout();
-        if (this.currentTradeId) {
-            database.ref('trades/' + this.currentTradeId).remove().catch(e => {});
+        // Usuń stan handlu w bazie, aby drugi gracz także zamknął okno
+        if (tradeId) {
+            database.ref('trades/' + tradeId).remove().catch(e => {});
         }
     }
 
