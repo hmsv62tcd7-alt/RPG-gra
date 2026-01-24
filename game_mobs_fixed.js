@@ -986,7 +986,48 @@ class Enemy {
 }
 
     update(playerX, playerY) {
-        // Sprawdzenie czy gracz jest w zasięgu
+        // SAFE_RECT w WORLD coords - prostokąt pokrywający kamienną podłogę + margines
+        const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+        
+        // Helper: sprawdzić czy punkt jest w safe zone
+        const insideSafe = (px, py) => {
+            return px >= SAFE_RECT.x && px <= SAFE_RECT.x + SAFE_RECT.w &&
+                   py >= SAFE_RECT.y && py <= SAFE_RECT.y + SAFE_RECT.h;
+        };
+        
+        // 1) NO ENTER: Jeśli mob jest w safe zone -> wypchnij go na zewnątrz i zablokuj
+        if (insideSafe(this.x, this.y)) {
+            // Znajdź najbliższy punkt poza safe zone
+            const cx = SAFE_RECT.x + SAFE_RECT.w / 2; // Środek rect
+            const cy = SAFE_RECT.y + SAFE_RECT.h / 2;
+            const dx = this.x - cx;
+            const dy = this.y - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            
+            // Wypchnij na oś o 20px od krawędzi
+            const pushDist = Math.max(SAFE_RECT.w, SAFE_RECT.h) / 2 + 20;
+            this.x = cx + (dx / dist) * pushDist;
+            this.y = cy + (dy / dist) * pushDist;
+            
+            // Reset ruchu i targetowania
+            this.velocityX = 0;
+            this.velocityY = 0;
+            this.target = null;
+            this.isAggro = false;
+            return; // Wyjdź z update - nie da się targetować w safe zone
+        }
+        
+        // 2) Sprawdzenie czy gracz jest w safe zone
+        const playerInSafeZone = insideSafe(playerX, playerY);
+        
+        if (playerInSafeZone) {
+            // Gracz w safe zone -> nie targetuj
+            this.target = null;
+            this.isAggro = false;
+            return;
+        }
+        
+        // 3) Normalna AI: sprawdzenie zasięgu i zbliżanie się
         const dx = this.x - playerX;
         const dy = this.y - playerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -2671,6 +2712,28 @@ class Game {
         this.enemies = [];
 
         const campX = 1800, campY = 1800;
+        
+        // SAFE_RECT w WORLD coords - prostokąt pokrywający kamienną podłogę + margines
+        const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+        
+        // Helper: sprawdzić czy punkt jest w safe zone
+        const insideSafe = (px, py) => {
+            return px >= SAFE_RECT.x && px <= SAFE_RECT.x + SAFE_RECT.w &&
+                   py >= SAFE_RECT.y && py <= SAFE_RECT.y + SAFE_RECT.h;
+        };
+        
+        console.log('[SAFE_ZONE] SAFE_RECT:', SAFE_RECT, 'Safe zone coords test:',
+            `topLeft(${SAFE_RECT.x},${SAFE_RECT.y})`, 
+            `bottomRight(${SAFE_RECT.x + SAFE_RECT.w},${SAFE_RECT.y + SAFE_RECT.h})`);
+        
+        // Debug instrukcja w konsoli
+        console.log('%c=== SAFE ZONE FIX - DEBUG INFO ===', 'color: #00FF00; font-weight: bold; font-size: 14px;');
+        console.log('%cSAFE ZONE ACTIVE: Green rect on map shows safe zone', 'color: #00FF00; font-size: 12px;');
+        console.log('%cTo clear old cache from Firebase, run:', 'color: #FFFF00; font-size: 11px;');
+        console.log('%c  window.gameManager?.debugClearEnemiesCache()', 'color: #FF9900; font-size: 11px; font-family: monospace;');
+        console.log('%cThen reload page (F5) to regenerate enemies', 'color: #FFFF00; font-size: 11px;');
+        console.log('%c========================================', 'color: #00FF00; font-weight: bold;');
+        
         let seedCounter = 1;
         const seededRandom = (seed) => {
             const x = Math.sin(seed) * 10000;
@@ -2709,6 +2772,11 @@ class Game {
 
                 // Zamiast clamp — odrzucaj pozycje poza mapą (eliminuje zbijanie na końcach mapy)
                 if (!inBounds(x, y)) continue;
+
+                // REJECT: SAFE ZONE (NO SPAWN) - jeśli punkt w safe zone, retry
+                if (insideSafe(x, y)) {
+                    continue; // Losuj ponownie, nie dodawaj do placed
+                }
 
                 let tooClose = false;
                 for (const p of placed) {
@@ -4234,6 +4302,28 @@ class Game {
             this.drawMapGrass();
         }
         // ---
+
+        // DEBUG: Narysuj safe zone rect na mapie (WORLD coords)
+        if (this.currentMap === 1) {
+            const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+            console.log("[DEBUG_DRAW] SAFE_RECT:", SAFE_RECT);
+            
+            // Rysuj prostokąt
+            this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeRect(SAFE_RECT.x, SAFE_RECT.y, SAFE_RECT.w, SAFE_RECT.h);
+            
+            // Rysuj tekst z wartościami (środek)
+            const textX = SAFE_RECT.x + SAFE_RECT.w / 2;
+            const textY = SAFE_RECT.y + SAFE_RECT.h / 2;
+            this.ctx.fillStyle = '#00FF00';
+            this.ctx.font = 'bold 14px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.shadowColor = '#000';
+            this.ctx.shadowBlur = 3;
+            this.ctx.fillText(`SAFE_ZONE (160,120 -> 680,660)`, textX, textY);
+            this.ctx.shadowColor = 'transparent';
+        }
 
         // Siatka debug wyłączona
 

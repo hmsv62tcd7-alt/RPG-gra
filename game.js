@@ -1010,31 +1010,41 @@ class Enemy {
     update(playerX, playerY) {
         // SAFE ZONE globals
         const villageX = 420, villageY = 360;
-        const SAFE_RADIUS = 320;
-        const SAFE_PUSH = 6; // siła wypychania
         
-        // 1) NO ENTER: Jeśli mob jest w safe zone -> wypchnij go na zewnątrz
-        const dxV = this.x - villageX;
-        const dyV = this.y - villageY;
-        const d2 = dxV * dxV + dyV * dyV;
+        // SAFE_RECT w WORLD coords - prostokąt pokrywający kamienną podłogę + margines
+        const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
         
-        if (d2 < SAFE_RADIUS * SAFE_RADIUS || (this.x >= 180 && this.x <= 660 && this.y >= 140 && this.y <= 640)) {
-            const d = Math.sqrt(d2) || 1;
-            // Wypchnij za boundary safe zone
-            this.x = villageX + (dxV / d) * (SAFE_RADIUS + 12);
-            this.y = villageY + (dyV / d) * (SAFE_RADIUS + 12);
+        // Helper: sprawdzić czy punkt jest w safe zone
+        const insideSafe = (px, py) => {
+            return px >= SAFE_RECT.x && px <= SAFE_RECT.x + SAFE_RECT.w &&
+                   py >= SAFE_RECT.y && py <= SAFE_RECT.y + SAFE_RECT.h;
+        };
+        
+        // 1) NO ENTER: Jeśli mob jest w safe zone -> wypchnij go na zewnątrz i zablokuj
+        if (insideSafe(this.x, this.y)) {
+            // Znajdź najbliższy punkt poza safe zone
+            const cx = SAFE_RECT.x + SAFE_RECT.w / 2; // Środek rect
+            const cy = SAFE_RECT.y + SAFE_RECT.h / 2;
+            const dx = this.x - cx;
+            const dy = this.y - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            
+            // Wypchnij na oś o 20px od krawędzi
+            const pushDist = Math.max(SAFE_RECT.w, SAFE_RECT.h) / 2 + 20;
+            this.x = cx + (dx / dist) * pushDist;
+            this.y = cy + (dy / dist) * pushDist;
+            
             // Reset ruchu i targetowania
             this.velocityX = 0;
             this.velocityY = 0;
             this.target = null;
             this.isAggro = false;
+            console.log('[NO_ENTER] Enemy', this.name, 'pushed out from safe zone to', this.x, this.y);
             return; // Wyjdź z update - nie da się targetować w safe zone
         }
         
         // 2) Sprawdzenie czy gracz jest w safe zone
-        const dxP = playerX - villageX;
-        const dyP = playerY - villageY;
-        const playerInSafeZone = (dxP * dxP + dyP * dyP < SAFE_RADIUS * SAFE_RADIUS);
+        const playerInSafeZone = insideSafe(playerX, playerY);
         
         if (playerInSafeZone) {
             // Gracz w safe zone -> nie targetuj
@@ -3198,10 +3208,46 @@ class Game {
         });
     }
 
+    // Funkcja pomocnicza do czyszczenia starych danych mobów z Firebase (debug)
+    debugClearEnemiesCache() {
+        console.log('[DEBUG] Clearing enemies cache from Firebase...');
+        for (let mapId = 1; mapId <= 3; mapId++) {
+            database.ref('gameState/map' + mapId + '/enemiesTemplate').remove().then(() => {
+                console.log('[DEBUG] Cleared map ' + mapId + ' enemies template');
+            }).catch(err => {
+                console.error('[DEBUG] Error clearing map ' + mapId + ':', err);
+            });
+        }
+    }
+
     generateEnemies() {
         // Spawner wokół wioski: safe zone, a potem 3 strefy/pierścienie
         this.enemies = [];
         const villageX = 420, villageY = 360; // Środek wioski
+        
+        // SAFE_RECT w WORLD coords - prostokąt pokrywający kamienną podłogę + margines
+        // Kamień: (180,140) do (660,640), rozszerzamy o ~20px marginesu
+        const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+        
+        // Helper: sprawdzić czy punkt jest w safe zone
+        const insideSafe = (px, py) => {
+            return px >= SAFE_RECT.x && px <= SAFE_RECT.x + SAFE_RECT.w &&
+                   py >= SAFE_RECT.y && py <= SAFE_RECT.y + SAFE_RECT.h;
+        };
+        
+        // Zaloguj safe rect do debugowania
+        console.log('[SAFE_ZONE] SAFE_RECT:', SAFE_RECT, 'Safe zone coords test:',
+            `topLeft(${SAFE_RECT.x},${SAFE_RECT.y})`, 
+            `bottomRight(${SAFE_RECT.x + SAFE_RECT.w},${SAFE_RECT.y + SAFE_RECT.h})`);
+        
+        // Debug instrukcja w konsoli
+        console.log('%c=== SAFE ZONE FIX - DEBUG INFO ===', 'color: #00FF00; font-weight: bold; font-size: 14px;');
+        console.log('%cSAFE ZONE ACTIVE: Green rect on map shows safe zone', 'color: #00FF00; font-size: 12px;');
+        console.log('%cTo clear old cache from Firebase, run:', 'color: #FFFF00; font-size: 11px;');
+        console.log('%c  window.gameManager?.debugClearEnemiesCache()', 'color: #FF9900; font-size: 11px; font-family: monospace;');
+        console.log('%cThen reload page (F5) to regenerate enemies', 'color: #FFFF00; font-size: 11px;');
+        console.log('%c========================================', 'color: #00FF00; font-weight: bold;');
+        
         const SAFE_RADIUS = 320; // Brak mobów wokół wioski (rozszerzone na całe domki)
         const MIN_DIST = 110; // Minimalny dystans między mobami (anti-stack)
         let seedCounter = 1;
@@ -3244,7 +3290,12 @@ class Game {
                 // REJECT: pozycje poza mapą (zamiast clamp)
                 if (x < margin || x > MAP_WIDTH - margin || y < margin || y > MAP_HEIGHT - margin) continue;
 
-                // REJECT: safe zone wokół wioski + prostokąt domków
+                // REJECT: SAFE ZONE (NO SPAWN) - jeśli punkt w safe zone, retry
+                if (insideSafe(x, y)) {
+                    continue; // Losuj ponownie, nie dodawaj do placed
+                }
+                
+                // REJECT: stary backup check (circular) + prostokąt domków (backup dla pewności)
                 const dx0 = x - villageX;
                 const dy0 = y - villageY;
                 if (dx0 * dx0 + dy0 * dy0 < SAFE_RADIUS * SAFE_RADIUS) continue;
@@ -3279,6 +3330,12 @@ class Game {
                         
                         // Sprawdź bounds i safe zone dla grupy
                         if (nx >= margin && nx <= MAP_WIDTH - margin && ny >= margin && ny <= MAP_HEIGHT - margin) {
+                            // REJECT: SAFE ZONE dla grupy (NO SPAWN)
+                            if (insideSafe(nx, ny)) {
+                                continue; // Skip this group member, try next
+                            }
+                            
+                            // Backup checks (circular + rect)
                             const ndx0 = nx - villageX;
                             const ndy0 = ny - villageY;
                             if (ndx0 * ndx0 + ndy0 * ndy0 >= SAFE_RADIUS * SAFE_RADIUS && !inVillageRect(nx, ny)) {
@@ -4806,6 +4863,28 @@ class Game {
             this.drawMapGrass();
         }
         // ---
+
+        // DEBUG: Narysuj safe zone rect na mapie (WORLD coords)
+        if (this.currentMap === 1) {
+            const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+            console.log("[DEBUG_DRAW] SAFE_RECT:", SAFE_RECT);
+            
+            // Rysuj prostokąt
+            this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeRect(SAFE_RECT.x, SAFE_RECT.y, SAFE_RECT.w, SAFE_RECT.h);
+            
+            // Rysuj tekst z wartościami (środek)
+            const textX = SAFE_RECT.x + SAFE_RECT.w / 2;
+            const textY = SAFE_RECT.y + SAFE_RECT.h / 2;
+            this.ctx.fillStyle = '#00FF00';
+            this.ctx.font = 'bold 14px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.shadowColor = '#000';
+            this.ctx.shadowBlur = 3;
+            this.ctx.fillText(`SAFE_ZONE (160,120 -> 680,660)`, textX, textY);
+            this.ctx.shadowColor = 'transparent';
+        }
 
         // Siatka debug wyłączona
 
