@@ -371,9 +371,23 @@ class Player {
             bodyGradient.addColorStop(1, race === 'Orc' ? '#0a1a3a' : '#2a0f42');
             ctx.fillStyle = bodyGradient; ctx.beginPath(); ctx.moveTo(centerX - 7, centerY - 2); ctx.lineTo(centerX + 7, centerY - 2); ctx.lineTo(centerX + 8, centerY + 10); ctx.lineTo(centerX - 8, centerY + 10); ctx.closePath(); ctx.fill();
 
-            // Staff
-            ctx.strokeStyle = race === 'Orc' ? '#ff0000' : '#ffd166'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(centerX + 10, centerY - 6); ctx.lineTo(centerX + 14, centerY + 8); ctx.stroke();
-            ctx.fillStyle = race === 'Orc' ? '#ff0000' : '#ff5c8a'; ctx.beginPath(); ctx.arc(centerX + 10, centerY - 8, 3, 0, Math.PI * 2); ctx.fill();
+            // Magical aura (glow effect)
+            const auraGradient = ctx.createRadialGradient(centerX, centerY + 2, 0, centerX, centerY + 2, 18);
+            auraGradient.addColorStop(0, race === 'Orc' ? 'rgba(255, 100, 100, 0.3)' : 'rgba(186, 85, 211, 0.3)');
+            auraGradient.addColorStop(1, race === 'Orc' ? 'rgba(255, 100, 100, 0)' : 'rgba(186, 85, 211, 0)');
+            ctx.fillStyle = auraGradient; ctx.beginPath(); ctx.arc(centerX, centerY + 2, 18, 0, Math.PI * 2); ctx.fill();
+
+            // Staff with glowing top
+            ctx.strokeStyle = race === 'Orc' ? '#ff3333' : '#ffd166'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(centerX + 10, centerY - 6); ctx.lineTo(centerX + 14, centerY + 8); ctx.stroke();
+            
+            // Glowing staff top
+            const staffGlow = ctx.createRadialGradient(centerX + 10, centerY - 8, 0, centerX + 10, centerY - 8, 4);
+            staffGlow.addColorStop(0, race === 'Orc' ? '#ffff00' : '#ffff99');
+            staffGlow.addColorStop(1, race === 'Orc' ? 'rgba(255, 100, 100, 0.5)' : 'rgba(255, 209, 102, 0.5)');
+            ctx.fillStyle = staffGlow; ctx.beginPath(); ctx.arc(centerX + 10, centerY - 8, 4, 0, Math.PI * 2); ctx.fill();
+            
+            // Staff top orb - brighter
+            ctx.fillStyle = race === 'Orc' ? '#ff6666' : '#ffcc99'; ctx.beginPath(); ctx.arc(centerX + 10, centerY - 8, 3, 0, Math.PI * 2); ctx.fill();
         }
 
         // Head - green for Orc, tan for Human
@@ -1079,67 +1093,179 @@ class Enemy {
     }
 
     drawWolf(ctx, centerX, centerY) {
-        // Wilk - szary, smukły
-        const bodyGradient = ctx.createLinearGradient(centerX - 14, centerY - 1, centerX + 8, centerY + 10);
-        bodyGradient.addColorStop(0, '#5a6a7a');
-        bodyGradient.addColorStop(0.5, '#3a4a5a');
-        bodyGradient.addColorStop(1, '#2a3a4a');
-        ctx.fillStyle = bodyGradient;
+        // Wilk w stylu RPG - ultra szczegółowy pixel art
+        const scale = 1.5; // Skalowanie dla większego rozmiaru
+        
+        // Cień pod wilkiem
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.beginPath();
-        ctx.ellipse(centerX - 2, centerY + 2, 14, 10, 0.1, 0, Math.PI * 2);
+        ctx.ellipse(centerX, centerY + 20 * scale, 14 * scale, 5 * scale, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Head (ostrzejsze niż dzik)
+        // Ciało - szare z cieniowaniem i teksturą
+        ctx.fillStyle = '#6a7a8a';
+        ctx.fillRect(centerX - 10 * scale, centerY + 2 * scale, 20 * scale, 10 * scale);
+        
+        // Cień na ciele
         ctx.fillStyle = '#4a5a6a';
+        ctx.fillRect(centerX - 10 * scale, centerY + 7 * scale, 20 * scale, 5 * scale);
+        
+        // Szersty na ciele
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo(centerX - 8 * scale + i * 4 * scale, centerY + 2 * scale);
+            ctx.lineTo(centerX - 8 * scale + i * 4 * scale, centerY + 12 * scale);
+            ctx.stroke();
+        }
+
+        // Głowa - większa, bardziej szczegółowa
+        ctx.fillStyle = '#7a8a9a';
         ctx.beginPath();
-        ctx.ellipse(centerX - 10, centerY - 2, 8, 7, 0.3, 0, Math.PI * 2);
+        ctx.ellipse(centerX - 8 * scale, centerY - 5 * scale, 9 * scale, 8 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Cień na głowie
+        ctx.fillStyle = '#5a6a7a';
+        ctx.beginPath();
+        ctx.ellipse(centerX - 8 * scale, centerY - 1 * scale, 8 * scale, 4 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Pysk - bardziej szczegółowy
+        ctx.fillStyle = '#8a9aaa';
+        ctx.beginPath();
+        ctx.ellipse(centerX - 13 * scale, centerY - 3 * scale, 5 * scale, 4 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Nos na pyskiem
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.ellipse(centerX - 14 * scale, centerY - 2 * scale, 1.5 * scale, 1.5 * scale, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Ears
-        ctx.fillStyle = '#3a4a5a';
+        // Uszy - duże, trójkątne z teksturą
+        ctx.fillStyle = '#6a7a8a';
+        // Lewe ucho
         ctx.beginPath();
-        ctx.moveTo(centerX - 14, centerY - 5);
-        ctx.lineTo(centerX - 16, centerY - 12);
-        ctx.lineTo(centerX - 12, centerY - 6);
+        ctx.moveTo(centerX - 12 * scale, centerY - 10 * scale);
+        ctx.lineTo(centerX - 14 * scale, centerY - 18 * scale);
+        ctx.lineTo(centerX - 8 * scale, centerY - 12 * scale);
         ctx.closePath();
         ctx.fill();
-
+        
+        // Prawe ucho
         ctx.beginPath();
-        ctx.moveTo(centerX - 8, centerY - 6);
-        ctx.lineTo(centerX - 6, centerY - 13);
-        ctx.lineTo(centerX - 4, centerY - 6);
+        ctx.moveTo(centerX - 2 * scale, centerY - 10 * scale);
+        ctx.lineTo(centerX - 4 * scale, centerY - 18 * scale);
+        ctx.lineTo(centerX + 2 * scale, centerY - 12 * scale);
         ctx.closePath();
         ctx.fill();
+        
+        // Wewnątrz uszu - różowe z włoskami
+        ctx.fillStyle = '#ff8888';
+        ctx.fillRect(centerX - 12.5 * scale, centerY - 16 * scale, 3 * scale, 4 * scale);
+        ctx.fillRect(centerX - 2.5 * scale, centerY - 16 * scale, 3 * scale, 4 * scale);
+        
+        // Włoski na uszach
+        ctx.strokeStyle = '#ff6666';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(centerX - 12 * scale + i * 1.5 * scale, centerY - 16 * scale);
+            ctx.lineTo(centerX - 12 * scale + i * 1.5 * scale, centerY - 14 * scale);
+            ctx.stroke();
+        }
 
-        // Eyes
-        ctx.fillStyle = this.isAggro ? '#FF4444' : '#FFBB00';
-        ctx.fillRect(centerX - 11, centerY - 3, 2, 2);
-        ctx.fillRect(centerX - 5, centerY - 3, 2, 2);
-
-        // Teeth
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
+        // Oczy - złote/czerwone, duże i wyraziste
+        ctx.fillStyle = this.isAggro ? '#ff3333' : '#ffdd00';
         ctx.beginPath();
-        ctx.moveTo(centerX - 11, centerY + 2);
-        ctx.lineTo(centerX - 11, centerY + 4);
-        ctx.moveTo(centerX - 9, centerY + 2);
-        ctx.lineTo(centerX - 9, centerY + 4);
-        ctx.stroke();
+        ctx.ellipse(centerX - 11 * scale, centerY - 6 * scale, 2.5 * scale, 2.5 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(centerX - 4 * scale, centerY - 6 * scale, 2.5 * scale, 2.5 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Świnki w oczach - większe
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.ellipse(centerX - 10.5 * scale, centerY - 5.5 * scale, 1 * scale, 1.2 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(centerX - 3.5 * scale, centerY - 5.5 * scale, 1 * scale, 1.2 * scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Błysk w oczach
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(centerX - 10 * scale, centerY - 6 * scale, 1 * scale, 0.8 * scale);
+        ctx.fillRect(centerX - 3 * scale, centerY - 6 * scale, 1 * scale, 0.8 * scale);
 
-        // Legs
-        ctx.fillStyle = '#2a3a4a';
-        ctx.fillRect(centerX - 10, centerY + 12, 2.5, 5);
-        ctx.fillRect(centerX - 4, centerY + 12, 2.5, 5);
-        ctx.fillRect(centerX + 2, centerY + 12, 2.5, 5);
-        ctx.fillRect(centerX + 8, centerY + 12, 2.5, 5);
-
-        // Tail
+        // Brwi
         ctx.strokeStyle = '#3a4a5a';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 0.5;
         ctx.beginPath();
-        ctx.moveTo(centerX + 10, centerY + 3);
-        ctx.quadraticCurveTo(centerX + 15, centerY, centerX + 14, centerY - 8);
+        ctx.moveTo(centerX - 12 * scale, centerY - 8 * scale);
+        ctx.lineTo(centerX - 10 * scale, centerY - 8.5 * scale);
         ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(centerX - 5 * scale, centerY - 8 * scale);
+        ctx.lineTo(centerX - 3 * scale, centerY - 8.5 * scale);
+        ctx.stroke();
+
+        // Zęby - wyraźne
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(centerX - 13.5 * scale, centerY - 1 * scale, 1.5 * scale, 1.5 * scale);
+        ctx.fillRect(centerX - 11.5 * scale, centerY - 1 * scale, 1.5 * scale, 1.5 * scale);
+        
+        // Czasami linijka dla zębów
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 0.3;
+        ctx.beginPath();
+        ctx.moveTo(centerX - 13.5 * scale, centerY * scale);
+        ctx.lineTo(centerX - 10 * scale, centerY * scale);
+        ctx.stroke();
+
+        // Łapy przód
+        ctx.fillStyle = '#5a6a7a';
+        ctx.fillRect(centerX - 10 * scale, centerY + 12 * scale, 2.5 * scale, 8 * scale);
+        ctx.fillRect(centerX - 4 * scale, centerY + 12 * scale, 2.5 * scale, 8 * scale);
+        
+        // Łapy tył
+        ctx.fillRect(centerX + 2 * scale, centerY + 12 * scale, 2.5 * scale, 8 * scale);
+        ctx.fillRect(centerX + 7 * scale, centerY + 12 * scale, 2.5 * scale, 8 * scale);
+        
+        // Łapki - ciemniejsze na końcach
+        ctx.fillStyle = '#3a4a5a';
+        ctx.fillRect(centerX - 9.5 * scale, centerY + 19 * scale, 3.5 * scale, 1.5 * scale);
+        ctx.fillRect(centerX - 3.5 * scale, centerY + 19 * scale, 3.5 * scale, 1.5 * scale);
+        ctx.fillRect(centerX + 2.5 * scale, centerY + 19 * scale, 3.5 * scale, 1.5 * scale);
+        ctx.fillRect(centerX + 7.5 * scale, centerY + 19 * scale, 3.5 * scale, 1.5 * scale);
+
+        // Ogon - długi i puchaty
+        ctx.strokeStyle = '#6a7a8a';
+        ctx.lineWidth = 3.5 * scale;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(centerX + 10 * scale, centerY + 5 * scale);
+        ctx.quadraticCurveTo(centerX + 16 * scale, centerY - 3 * scale, centerX + 15 * scale, centerY - 14 * scale);
+        ctx.stroke();
+        
+        // Koniec ogona - puszysty
+        ctx.fillStyle = '#5a6a7a';
+        ctx.beginPath();
+        ctx.ellipse(centerX + 15 * scale, centerY - 14 * scale, 2.5 * scale, 3 * scale, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Włosy na ogonie
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.moveTo(centerX + 10 * scale + i * 1.5 * scale, centerY + 5 * scale);
+            ctx.lineTo(centerX + 11 * scale + i * 1.5 * scale, centerY - 8 * scale);
+            ctx.stroke();
+        }
     }
 
     drawBear(ctx, centerX, centerY) {
@@ -1503,21 +1629,18 @@ class Game {
         this.grassTextureLoaded = false;
         this.grassPattern = null;
         this.grassTexture.onload = () => {
-            // Przeskaluj do mniejszego rozmiaru dla lepszej wydajności
-            const maxSize = 512;
-            const scale = Math.min(1, maxSize / Math.max(this.grassTexture.width, this.grassTexture.height));
+            // Przeskaluj do małego rozmiaru dla małych kwadracików
+            const tileSize = 200; // Rozmiar pojedynczego kafelka
+            const scale = tileSize / Math.max(this.grassTexture.width, this.grassTexture.height);
             
-            if (scale < 1) {
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCanvas.width = this.grassTexture.width * scale;
-                tempCanvas.height = this.grassTexture.height * scale;
-                tempCtx.drawImage(this.grassTexture, 0, 0, tempCanvas.width, tempCanvas.height);
-                this.grassPattern = this.ctx.createPattern(tempCanvas, 'repeat');
-            } else {
-                this.grassPattern = this.ctx.createPattern(this.grassTexture, 'repeat');
-            }
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = tileSize;
+            tempCanvas.height = tileSize;
+            tempCtx.drawImage(this.grassTexture, 0, 0, tileSize, tileSize);
             
+            // Utwórz pattern z przeskalowanym obrazkiem
+            this.grassPattern = this.ctx.createPattern(tempCanvas, 'repeat');
             this.grassTextureLoaded = true;
         };
 
@@ -1550,6 +1673,89 @@ class Game {
             tempCtx.putImageData(imageData, 0, 0);
             this.processedTreeTexture = tempCanvas;
             this.treeTextureLoaded = true;
+        };
+
+        // Załaduj obrazek domu
+        this.houseTexture = new Image();
+        this.houseTexture.src = 'Grafika/5546.jpg';
+        this.houseTextureLoaded = false;
+        this.processedHouseTexture = null;
+        this.houseTexture.onload = () => {
+            // Przeskaluj i przetwórz obrazek raz przy załadowaniu
+            const maxSize = 256;
+            const scale = Math.min(1, maxSize / Math.max(this.houseTexture.width, this.houseTexture.height));
+            
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = this.houseTexture.width * scale;
+            tempCanvas.height = this.houseTexture.height * scale;
+            tempCtx.drawImage(this.houseTexture, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+            
+            // Usuń białe tło
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] > 230 && data[i + 1] > 230 && data[i + 2] > 230) {
+                    data[i + 3] = 0;
+                }
+            }
+            
+            tempCtx.putImageData(imageData, 0, 0);
+            this.processedHouseTexture = tempCanvas;
+            this.houseTextureLoaded = true;
+        };
+
+        // Załaduj teksturę kamienia na ziemię
+        this.stoneTexture = new Image();
+        this.stoneTexture.src = 'Grafika/492.jpg';
+        this.stoneTextureLoaded = false;
+        this.stonePattern = null;
+        this.stoneTexture.onload = () => {
+            // Przeskaluj do małego rozmiaru dla małych kwadracików
+            const tileSize = 200; // Rozmiar pojedynczego kafelka
+            const scale = tileSize / Math.max(this.stoneTexture.width, this.stoneTexture.height);
+            
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = tileSize;
+            tempCanvas.height = tileSize;
+            tempCtx.drawImage(this.stoneTexture, 0, 0, tileSize, tileSize);
+            
+            // Utwórz pattern z przeskalowanym obrazkiem
+            this.stonePattern = this.ctx.createPattern(tempCanvas, 'repeat');
+            this.stoneTextureLoaded = true;
+        };
+
+        // Załaduj obrazek wilka
+        this.wolfTexture = new Image();
+        this.wolfTexture.src = 'Grafika/wolf.jpg';
+        this.wolfTextureLoaded = false;
+        this.processedWolfTexture = null;
+        this.wolfTexture.onload = () => {
+            // Przeskaluj i przetwórz obrazek
+            const maxSize = 256;
+            const scale = Math.min(1, maxSize / Math.max(this.wolfTexture.width, this.wolfTexture.height));
+            
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = this.wolfTexture.width * scale;
+            tempCanvas.height = this.wolfTexture.height * scale;
+            tempCtx.drawImage(this.wolfTexture, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+            
+            // Usuń białe tło
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] > 230 && data[i + 1] > 230 && data[i + 2] > 230) {
+                    data[i + 3] = 0;
+                }
+            }
+            
+            tempCtx.putImageData(imageData, 0, 0);
+            this.processedWolfTexture = tempCanvas;
+            this.wolfTextureLoaded = true;
         };
 
         // Wygeneruj mapę trawy raz (backup gdyby tekstura się nie załadowała)
@@ -1843,7 +2049,7 @@ class Game {
 
         // Close buttons for panels
         const closeInventoryBtn = document.getElementById('closeInventoryBtn');
-        const closeEquipmentBtn = document.getElementById('closeEquipmentBtn');
+        const closeEquipmentBtn = document.getElementById('closeEquipmentPanel');
         
         if (closeInventoryBtn) {
             closeInventoryBtn.addEventListener('click', () => {
@@ -1854,14 +2060,14 @@ class Game {
         
         if (closeEquipmentBtn) {
             closeEquipmentBtn.addEventListener('click', () => {
-                const eqPanel = document.getElementById('equipmentWindow');
+                const eqPanel = document.getElementById('equipmentPanel');
                 if (eqPanel) eqPanel.classList.remove('visible');
             });
         }
 
         // Draggable panels (inventory, equipment)
         this.makePanelDraggable('inventoryWindow');
-        this.makePanelDraggable('equipmentWindow');
+        this.makePanelDraggable('equipmentPanel');
 
         // Dialogue continue button
         const dialogueContinue = document.getElementById('dialogueContinue');
@@ -2493,10 +2699,10 @@ class Game {
             y: groundAfterDoor
         };
         this.interiorExitZone = {
-            x: this.interiorMapSize.width / 2 - 60,
-            y: this.interiorMapSize.height - 150,
-            width: 120,
-            height: 120
+            x: this.interiorMapSize.width / 2 - 30,
+            y: this.interiorMapSize.height - 60,
+            width: 60,
+            height: 60
         };
 
         // Lada w sklepie (wnętrze żółtego domu) - wąska bariera
@@ -2845,10 +3051,11 @@ class Game {
 
         // Obsługa ekwipunku (klawisz C)
         if (key === 'c' || key === 'C') {
-            const eqPanel = document.getElementById('equipmentWindow');
+            const eqPanel = document.getElementById('equipmentPanel');
             if (eqPanel) {
                 const nowVisible = eqPanel.classList.toggle('visible');
-                if (nowVisible && !eqPanel.dataset.dragged) {
+                if (nowVisible) {
+                    this.updateEquipmentStats();
                     this.centerPanel(eqPanel);
                 }
             }
@@ -3031,12 +3238,12 @@ class Game {
         };
 
         return [
-            makeHouse('redHouse', 200, 200, 120, 100),
-            makeHouse('blueHouse', 400, 200, 100, 90),
-            makeHouse('greenHouse', 620, 200, 110, 95),
-            makeHouse('orangeHouse', 220, 400, 130, 110),
-            makeHouse('purpleHouse', 450, 420, 100, 95),
-            makeHouse('yellowHouse', 650, 450, 115, 100, true, true)
+            makeHouse('redHouse', 180, 180, 180, 150),
+            makeHouse('blueHouse', 420, 180, 150, 135),
+            makeHouse('greenHouse', 650, 180, 165, 145),
+            makeHouse('orangeHouse', 180, 470, 195, 165),
+            makeHouse('purpleHouse', 420, 520, 150, 145),
+            makeHouse('yellowHouse', 650, 450, 175, 150, true, true)
         ];
     }
 
@@ -3679,7 +3886,7 @@ class Game {
         this.updateInventoryDisplay();
         
         // Update stats in equipment panel
-        this.updateEquipmentStatsUI();
+        this.updateEquipmentStats();
 
         // Update attack button cooldown (eksploracja)
         this.updateAttackButtonCooldown();
@@ -3768,47 +3975,38 @@ class Game {
         });
         
         // Update stats in equipment panel
-        document.getElementById('eqATK').textContent = this.player.equipmentATK;
-        document.getElementById('eqDEF').textContent = this.player.equipmentDEF;
-        
-        // Update stats in equipment panel
-        this.updateEquipmentStatsUI();
+        this.updateEquipmentStats();
         
         // Update shop display
         this.updateShopDisplay();
     }
 
-    updateEquipmentStatsUI() {
-        // Zaktualizuj wszystkie staty w panelu ekwipunku
+    updateEquipmentStats() {
+        // Aktualizuj staty w oknie Ekwipunek (#equipmentPanel)
+        if (!this.player) return;
+
         const stats = this.player.stats;
-        const eqAtkEl = document.getElementById('eqATK');
-        const eqDefEl = document.getElementById('eqDEF');
-        const eqStrEl = document.getElementById('eqSTR');
-        const eqIntEl = document.getElementById('eqINT');
-        const eqZrnEl = document.getElementById('eqZRN');
-        const eqVitEl = document.getElementById('eqVIT');
-        const eqHpEl = document.getElementById('eqHP');
-        const eqSpecialLabelEl = document.getElementById('eqSpecialLabel');
-        const eqSpecialEl = document.getElementById('eqSpecial');
         
-        // Oblicz ATK i DEF na podstawie statów
-        // ATK = STR * 2 + INT * 1 + ZRN * 1 + bonusy ekwipunku
-        // DEF = VIT * 1 + STR * 1 + bonusy ekwipunku
-        const atk = stats.str * 2 + stats.int * 1 + stats.zrn * 1 + this.player.equipmentATK;
-        const def = stats.vit * 1 + stats.str * 1 + this.player.equipmentDEF;
+        // Oblicz ATK i DEF
+        const atk = stats.str * 2 + stats.int * 1 + stats.zrn * 1 + (this.player.equipmentATK || 0);
+        const def = stats.vit * 1 + stats.str * 1 + (this.player.equipmentDEF || 0);
         
-        if (eqAtkEl) eqAtkEl.textContent = atk;
-        if (eqDefEl) eqDefEl.textContent = def;
-        if (eqStrEl) eqStrEl.textContent = stats.str;
-        if (eqIntEl) eqIntEl.textContent = stats.int;
-        if (eqZrnEl) eqZrnEl.textContent = stats.zrn;
-        if (eqVitEl) eqVitEl.textContent = stats.vit;
-        if (eqHpEl) eqHpEl.textContent = `${this.player.hp}/${this.player.maxHp}`;
+        // Aktualizuj wszystkie staty
+        const updateEl = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+        
+        updateEl('eqStatATK', atk);
+        updateEl('eqStatDEF', def);
+        updateEl('eqStatSTR', stats.str);
+        updateEl('eqStatINT', stats.int);
+        updateEl('eqStatZRN', stats.zrn);
+        updateEl('eqStatVIT', stats.vit);
+        updateEl('eqStatHP', `${this.player.hp}/${this.player.maxHp}`);
         
         // Specjalna cecha klasy
-        const specialValue = 5; // Tymczasowa wartość bazowa
-        let specialLabel = 'BLOK:'; // Default
-        
+        let specialLabel = 'CRIT:';
         if (this.player.classType === ClassType.WOJ) {
             specialLabel = 'BLOK:';
         } else if (this.player.classType === ClassType.HUNTER) {
@@ -3817,8 +4015,11 @@ class Game {
             specialLabel = 'CRIT:';
         }
         
-        if (eqSpecialLabelEl) eqSpecialLabelEl.textContent = specialLabel;
-        if (eqSpecialEl) eqSpecialEl.textContent = `${specialValue}%`;
+        const specialLabelEl = document.getElementById('eqSpecialLabel');
+        if (specialLabelEl) specialLabelEl.textContent = specialLabel;
+        
+        const specialValueEl = document.getElementById('eqSpecialValue');
+        if (specialValueEl) specialValueEl.textContent = '5%';
     }
 
     // ========== ATTACK SYSTEM ==========
@@ -4121,9 +4322,12 @@ class Game {
 
     toggleEquipmentTab(tabName) {
         // Pokazuj/ukryj equipment panel
-        const eqPanel = document.getElementById('equipmentWindow');
+        const eqPanel = document.getElementById('equipmentPanel');
         if (eqPanel) {
             eqPanel.classList.toggle('visible');
+            if (eqPanel.classList.contains('visible')) {
+                this.updateEquipmentStats();
+            }
         }
         
         // Zmień zakładkę
@@ -4907,9 +5111,14 @@ class Game {
 
     drawStartVillage() {
         // Wioska startowa w lewej części mapy (200-800, 200-700)
-        // Tło wioski
-        this.ctx.fillStyle = '#4a7c2d';
-        this.ctx.fillRect(150, 150, 700, 600);
+        // Tło wioski - kamienna zięć
+        if (this.stoneTextureLoaded && this.stonePattern) {
+            this.ctx.fillStyle = this.stonePattern;
+            this.ctx.fillRect(150, 150, 700, 600);
+        } else {
+            this.ctx.fillStyle = '#4a7c2d';
+            this.ctx.fillRect(150, 150, 700, 600);
+        }
 
         // Płot wokół wioski
         this.ctx.strokeStyle = '#654321';
@@ -4917,31 +5126,43 @@ class Game {
         this.ctx.strokeRect(150, 150, 700, 600);
 
         // Dom 1 (czerwony dach)
-        this.drawHouse(200, 200, 120, 100, '#8b4513', '#b22222');
+        this.drawHouse(180, 180, 180, 150, '#8b4513', '#b22222');
         
         // Dom 2 (niebieski dach)
-        this.drawHouse(400, 200, 100, 90, '#a0826d', '#4169e1');
+        this.drawHouse(420, 180, 150, 135, '#a0826d', '#4169e1');
         
         // Dom 3 (zielony dach)
-        this.drawHouse(620, 200, 110, 95, '#8b7355', '#228b22');
+        this.drawHouse(650, 180, 165, 145, '#8b7355', '#228b22');
         
         // Dom 4 (pomarańczowy dach)
-        this.drawHouse(220, 400, 130, 110, '#9a7b4f', '#ff8c00');
+        this.drawHouse(180, 470, 195, 165, '#9a7b4f', '#ff8c00');
         
         // Dom 5 (fioletowy dach)
-        this.drawHouse(450, 420, 100, 95, '#8b6f47', '#9370db');
+        this.drawHouse(420, 520, 150, 145, '#8b6f47', '#9370db');
         
-        // Dom 6 (żółty dach)
-        this.drawHouse(650, 450, 115, 100, '#a0826d', '#ffd700');
+        // Dom 6 (żółty dach) - ten zostaje jak był
+        this.drawHouse(650, 450, 175, 150, '#a0826d', '#ffd700');
 
         // Studnia na środku
-        this.drawWell(400, 550);
+        this.drawWell(450, 380);
 
         // Znak wioski
         this.drawVillageSign(250, 650);
     }
 
     drawHouse(x, y, width, height, wallColor, roofColor) {
+        if (this.houseTextureLoaded && this.processedHouseTexture) {
+            // Użyj obrazka domu
+            this.ctx.drawImage(
+                this.processedHouseTexture,
+                x,
+                y,
+                width,
+                height
+            );
+            return;
+        }
+        
         // Styl mocniej RPG: kamienna podmurówka, drewniane belki, dach z głębią i witrażowe okna.
         const baseWall = wallColor || '#d7c9a4';
         const wallShadow = '#9a8c6a';
@@ -5124,35 +5345,137 @@ class Game {
     }
 
     drawWell(x, y) {
-        // Base studni
-        this.ctx.fillStyle = '#696969';
+        // Cień pod studnią
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         this.ctx.beginPath();
-        this.ctx.arc(x, y, 30, 0, Math.PI * 2);
+        this.ctx.ellipse(x, y + 35, 45, 12, 0, 0, Math.PI * 2);
         this.ctx.fill();
-        this.ctx.strokeStyle = '#000';
+
+        // Podstawa studni - kamienne cegły
+        const gradient = this.ctx.createRadialGradient(x, y, 15, x, y, 35);
+        gradient.addColorStop(0, '#8a8a8a');
+        gradient.addColorStop(1, '#5a5a5a');
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 35, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Kontury kamieni
+        this.ctx.strokeStyle = '#3a3a3a';
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
-
-        // Wnętrze (ciemne)
-        this.ctx.fillStyle = '#1a1a1a';
+        
+        // Wnętrze studni (głębokie i ciemne)
+        const darkGradient = this.ctx.createRadialGradient(x, y, 0, x, y, 25);
+        darkGradient.addColorStop(0, '#0a0a0a');
+        darkGradient.addColorStop(0.7, '#1a1a1a');
+        darkGradient.addColorStop(1, '#2a2a2a');
+        this.ctx.fillStyle = darkGradient;
         this.ctx.beginPath();
-        this.ctx.arc(x, y, 20, 0, Math.PI * 2);
+        this.ctx.arc(x, y, 25, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Odbicie wody na dnie
+        this.ctx.fillStyle = 'rgba(100, 150, 200, 0.3)';
+        this.ctx.beginPath();
+        this.ctx.arc(x, y + 5, 15, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Słupki
-        this.ctx.fillStyle = '#8b4513';
-        this.ctx.fillRect(x - 35, y - 60, 10, 60);
-        this.ctx.fillRect(x + 25, y - 60, 10, 60);
+        // Słupki drewniane
+        this.ctx.fillStyle = '#6b4423';
+        this.ctx.fillRect(x - 40, y - 70, 12, 70);
+        this.ctx.fillRect(x + 28, y - 70, 12, 70);
+        
+        // Tekstura drewna na słupkach
+        this.ctx.strokeStyle = '#4a2f1a';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x - 40, y - 70, 12, 70);
+        this.ctx.strokeRect(x + 28, y - 70, 12, 70);
+        
+        // Linie drewna
+        for (let i = 0; i < 5; i++) {
+            this.ctx.strokeStyle = 'rgba(74, 47, 26, 0.5)';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x - 40, y - 70 + i * 14);
+            this.ctx.lineTo(x - 28, y - 70 + i * 14);
+            this.ctx.stroke();
+            this.ctx.beginPath();
+            this.ctx.moveTo(x + 28, y - 70 + i * 14);
+            this.ctx.lineTo(x + 40, y - 70 + i * 14);
+            this.ctx.stroke();
+        }
 
-        // Daszek
-        this.ctx.fillStyle = '#b22222';
+        // Belka pozioma (kołowrotek)
+        this.ctx.fillStyle = '#5a3a1f';
+        this.ctx.fillRect(x - 45, y - 72, 90, 8);
+        this.ctx.strokeStyle = '#2a1a0f';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(x - 45, y - 72, 90, 8);
+        
+        // Koło kołowrotka
+        this.ctx.fillStyle = '#8b6f47';
         this.ctx.beginPath();
-        this.ctx.moveTo(x - 40, y - 60);
-        this.ctx.lineTo(x, y - 80);
-        this.ctx.lineTo(x + 40, y - 60);
+        this.ctx.arc(x + 35, y - 68, 8, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#3a2a1a';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+        
+        // Szprychy koła
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x + 35, y - 68);
+            this.ctx.lineTo(x + 35 + Math.cos(angle) * 6, y - 68 + Math.sin(angle) * 6);
+            this.ctx.stroke();
+        }
+
+        // Lina
+        this.ctx.strokeStyle = '#8b7355';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + 35, y - 68);
+        this.ctx.lineTo(x + 10, y - 10);
+        this.ctx.stroke();
+        
+        // Wiadro
+        this.ctx.fillStyle = '#696969';
+        this.ctx.fillRect(x + 5, y - 10, 10, 12);
+        this.ctx.strokeStyle = '#3a3a3a';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(x + 5, y - 10, 10, 12);
+        
+        // Uchwyt wiadra
+        this.ctx.strokeStyle = '#4a4a4a';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(x + 10, y - 10, 5, Math.PI, 0, false);
+        this.ctx.stroke();
+
+        // Daszek (bardziej szczegółowy)
+        const roofGradient = this.ctx.createLinearGradient(x - 50, y - 85, x + 50, y - 85);
+        roofGradient.addColorStop(0, '#8b2222');
+        roofGradient.addColorStop(0.5, '#b22222');
+        roofGradient.addColorStop(1, '#8b2222');
+        this.ctx.fillStyle = roofGradient;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x - 50, y - 70);
+        this.ctx.lineTo(x, y - 95);
+        this.ctx.lineTo(x + 50, y - 70);
         this.ctx.closePath();
         this.ctx.fill();
+        
+        // Kontur dachu
+        this.ctx.strokeStyle = '#5a1212';
+        this.ctx.lineWidth = 2;
         this.ctx.stroke();
+        
+        // Gówka dachu
+        this.ctx.fillStyle = '#d4af37';
+        this.ctx.beginPath();
+        this.ctx.arc(x, y - 95, 4, 0, Math.PI * 2);
+        this.ctx.fill();
     }
 
     drawVillageSign(x, y) {

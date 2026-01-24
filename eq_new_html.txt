@@ -1,0 +1,91 @@
+        <!-- EQUIPMENT WINDOW (Ekwipunek) - klawisz C -->
+        <div id="equipmentPanel" class="equipment-panel">
+            <div class="equipment-header">
+                <div class="equipment-title">🛡️ Ekwipunek</div>
+                <button id="closeEquipmentPanel" class="close-btn">✕</button>
+            </div>
+
+            <div class="equipment-body">
+                <!-- GÓRA: Sloty + Postać -->
+                <div class="equipment-slots-area">
+                    <!-- Lewa kolumna: 3 sloty w pionie (broń, tarcza, hełm) -->
+                    <div class="eq-column eq-left">
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotWeapon" data-slot="weapon" title="Broń">⚔️</div>
+                        </div>
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotShield" data-slot="shield" title="Tarcza">🛡️</div>
+                        </div>
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotHelmet" data-slot="helmet" title="Hełm">⛑</div>
+                        </div>
+                    </div>
+
+                    <!-- Środek: Postać + sloty (amulet na górze, buty na dole) -->
+                    <div class="eq-column eq-center">
+                        <div class="eq-slot-wrapper eq-top">
+                            <div class="eq-slot" id="slotNecklace" data-slot="necklace" title="Amulet">🔮</div>
+                        </div>
+                        <div class="character-model" id="eqCharacter">
+                            <div class="character-body">
+                                <div class="char-head"></div>
+                                <div class="char-torso"></div>
+                                <div class="char-left-arm"></div>
+                                <div class="char-right-arm"></div>
+                                <div class="char-left-leg"></div>
+                                <div class="char-right-leg"></div>
+                            </div>
+                        </div>
+                        <div class="eq-slot-wrapper eq-bottom">
+                            <div class="eq-slot" id="slotBoots" data-slot="boots" title="Buty">🥾</div>
+                        </div>
+                    </div>
+
+                    <!-- Prawa kolumna: 2 sloty w pionie (pierścień, akcesoria) -->
+                    <div class="eq-column eq-right">
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotRing" data-slot="ring" title="Pierścień">💍</div>
+                        </div>
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotAccessory" data-slot="accessory" title="Akcesoria"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DÓŁ: Panel Statów -->
+                <div class="equipment-stats-panel">
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">ATK:</span>
+                        <span class="eq-stat-value" id="eqStatATK">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">DEF:</span>
+                        <span class="eq-stat-value" id="eqStatDEF">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">STR:</span>
+                        <span class="eq-stat-value" id="eqStatSTR">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">INT:</span>
+                        <span class="eq-stat-value" id="eqStatINT">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">ZRN:</span>
+                        <span class="eq-stat-value" id="eqStatZRN">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">VIT:</span>
+                        <span class="eq-stat-value" id="eqStatVIT">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">HP:</span>
+                        <span class="eq-stat-value" id="eqStatHP">0/0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label" id="eqSpecialLabel">CRIT:</span>
+                        <span class="eq-stat-value" id="eqSpecialValue">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>

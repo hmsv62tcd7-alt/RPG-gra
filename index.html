@@ -46,34 +46,107 @@
 
     <!-- GRA -->
     <div id="gameContainer" class="hidden">
-        <!-- HUD -->
-        <div id="hud" class="hud">
-            <div class="hud-item">
-                <span>HP:</span>
-                <div class="hp-bar">
-                    <div id="hpFill" class="hp-fill"></div>
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- UI OVERLAY -->
+        <div id="uiLayer">
+            <div class="ui-top-left">
+                <canvas id="minimap"></canvas>
+                <div id="gameTime" class="game-time">00:00:00</div>
+                <div id="hud" class="hud">
+                    <div class="hud-item">
+                        <span>HP:</span>
+                        <div class="hp-bar">
+                            <div id="hpFill" class="hp-fill"></div>
+                        </div>
+                        <span id="hpText">100/100</span>
+                    </div>
+                    <div class="hud-item">
+                        <span id="levelText">LVL: 1</span>
+                    </div>
+                    <div class="hud-item">
+                        <span>EXP:</span>
+                        <div class="exp-bar">
+                            <div id="expFill" class="exp-fill"></div>
+                        </div>
+                        <span id="expText">0/100</span>
+                    </div>
+                    <div class="hud-item">
+                        <span id="goldText">Gold: 0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span id="invText">EQ: 0/20</span>
+                    </div>
+                    <div class="hud-item">
+                        <span id="posText">Pozycja: 0, 0</span>
+                    </div>
                 </div>
-                <span id="hpText">100/100</span>
             </div>
-            <div class="hud-item">
-                <span id="levelText">LVL: 1</span>
-            </div>
-            <div class="hud-item">
-                <span>EXP:</span>
-                <div class="exp-bar">
-                    <div id="expFill" class="exp-fill"></div>
+
+            <div class="ui-top-right">
+                <div id="questPanel" class="quest-panel">
+                    <div class="quest-panel-header">
+                        <div class="quest-panel-title">📋 Aktywne Misje</div>
+                        <button id="rankingBtn" class="ranking-btn" title="Ranking graczy">🏆</button>
+                    </div>
+                    <div id="questList" class="quest-list"></div>
                 </div>
-                <span id="expText">0/100</span>
             </div>
-            <div class="hud-item">
-                <span id="goldText">Gold: 0</span>
+
+            <div class="chat-floating">
+                <div id="chatPanel" class="chat-panel">
+                    <div class="chat-header">💬 Chat</div>
+                    <div id="chatMessages" class="chat-messages"></div>
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="chatInput" placeholder="Wpisz wiadomość..." maxlength="100">
+                        <button id="chatSendBtn">📤</button>
+                    </div>
+                </div>
             </div>
-            <div class="hud-item">
-                <span id="invText">EQ: 0/20</span>
+
+            <div class="ui-bottom">
+                <div id="battleHUD" class="battle-hud">
+                    <div class="player-status">
+                        <div class="status-bar">
+                            <h4 id="battlePlayerName">Ty</h4>
+                            <div class="battle-hp-bar">
+                                <div id="battlePlayerHp" class="battle-hp-fill"></div>
+                            </div>
+                            <span id="battlePlayerHpText">100/100</span>
+                        </div>
+                    </div>
+
+                    <div class="skill-bar">
+                        <button id="skillBtn1" class="skill-btn skill-1 attack-btn">
+                            <div class="skill-icon" id="skill1Icon">⚔</div>
+                            <div class="skill-name" id="skill1Name">Atak</div>
+                            <div class="skill-cd" id="skillCD1">GOTÓW</div>
+                        </button>
+                        <button id="skillBtn2" class="skill-btn skill-2">
+                            <div class="skill-icon" id="skill2Icon">🔥</div>
+                            <div class="skill-name" id="skill2Name">Kula Ognia</div>
+                            <div class="skill-cd" id="skillCD2">GOTÓW</div>
+                        </button>
+                        <button id="skillBtn3" class="skill-btn skill-3">
+                            <div class="skill-icon" id="skill3Icon">🛡</div>
+                            <div class="skill-name" id="skill3Name">Obrona</div>
+                            <div class="skill-cd" id="skillCD3">GOTÓW</div>
+                        </button>
+                    </div>
+
+                    <div class="enemy-status">
+                        <div class="status-bar">
+                            <h4 id="battleEnemyName">Brak wroga</h4>
+                            <div class="battle-hp-bar">
+                                <div id="battleEnemyHp" class="battle-hp-fill"></div>
+                            </div>
+                            <span id="battleEnemyHpText">--/--</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="hud-item">
-                <span id="posText">Pozycja: 0, 0</span>
-            </div>
+
+            <button id="hudToggleBtn" class="hud-toggle">📊 HUD</button>
         </div>
 
         <!-- INVENTORY WINDOW (Torba) -->
@@ -86,72 +159,98 @@
         </div>
 
         <!-- EQUIPMENT WINDOW (Ekwipunek) -->
-        <div id="equipmentWindow" class="equipment-panel">
-            <div class="panel-header">
+        <!-- EQUIPMENT WINDOW (Ekwipunek) - klawisz C -->
+        <div id="equipmentPanel" class="equipment-panel">
+            <div class="equipment-header">
                 <div class="equipment-title">🛡️ Ekwipunek</div>
-                <button id="closeEquipmentBtn" class="close-btn">✕</button>
+                <button id="closeEquipmentPanel" class="close-btn">✕</button>
             </div>
-            
-            <!-- CHARACTER EQUIPMENT -->
-            <div class="equipment-display">
-                <!-- Slots wokół postaci -->
-                <div class="equipment-slots-grid">
-                    <!-- Hełm (top center) -->
-                    <div class="slot-position helmet-pos">
-                        <div class="equipment-slot helmet-slot" data-slot="helmet" title="Hełm - Prawy klik: Załóż/Zdejmij">⛑</div>
+
+            <div class="equipment-body">
+                <!-- GÓRA: Sloty + Postać -->
+                <div class="equipment-slots-area">
+                    <!-- Lewa kolumna: 3 sloty w pionie (broń, tarcza, hełm) -->
+                    <div class="eq-column eq-left">
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotWeapon" data-slot="weapon" title="Broń">⚔️</div>
+                        </div>
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotShield" data-slot="shield" title="Tarcza">🛡️</div>
+                        </div>
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotHelmet" data-slot="helmet" title="Hełm">⛑</div>
+                        </div>
                     </div>
-                    
-                    <!-- Broń (left top) -->
+
+                    <!-- Środek: Postać + sloty (amulet na górze, buty na dole) -->
+                    <div class="eq-column eq-center">
+                        <div class="eq-slot-wrapper eq-top">
+                            <div class="eq-slot" id="slotNecklace" data-slot="necklace" title="Amulet">🔮</div>
+                        </div>
+                        <div class="character-model" id="eqCharacter">
+                            <div class="character-body">
+                                <div class="char-head"></div>
+                                <div class="char-torso"></div>
+                                <div class="char-left-arm"></div>
+                                <div class="char-right-arm"></div>
+                                <div class="char-left-leg"></div>
+                                <div class="char-right-leg"></div>
+                            </div>
+                        </div>
+                        <div class="eq-slot-wrapper eq-bottom">
+                            <div class="eq-slot" id="slotBoots" data-slot="boots" title="Buty">🥾</div>
+                        </div>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">ATK:</span>
-                        <span class="stat-value" id="eqATK">0</span>
+
+                    <!-- Prawa kolumna: 2 sloty w pionie (pierścień, rękawice) -->
+                    <div class="eq-column eq-right">
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotRing" data-slot="ring" title="Pierścień">💍</div>
+                        </div>
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotGloves" data-slot="gloves" title="Rękawice">🧤</div>
+                        </div>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">DEF:</span>
-                        <span class="stat-value" id="eqDEF">0</span>
+                </div>
+
+                <!-- DÓŁ: Panel Statów -->
+                <div class="equipment-stats-panel">
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">ATK:</span>
+                        <span class="eq-stat-value" id="eqStatATK">0</span>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">STR:</span>
-                        <span class="stat-value" id="eqSTR">0</span>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">DEF:</span>
+                        <span class="eq-stat-value" id="eqStatDEF">0</span>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">INT:</span>
-                        <span class="stat-value" id="eqINT">0</span>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">STR:</span>
+                        <span class="eq-stat-value" id="eqStatSTR">0</span>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">ZRN:</span>
-                        <span class="stat-value" id="eqZRN">0</span>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">INT:</span>
+                        <span class="eq-stat-value" id="eqStatINT">0</span>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">VIT:</span>
-                        <span class="stat-value" id="eqVIT">0</span>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">ZRN:</span>
+                        <span class="eq-stat-value" id="eqStatZRN">0</span>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label">HP:</span>
-                        <span class="stat-value" id="eqHP">0</span>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">VIT:</span>
+                        <span class="eq-stat-value" id="eqStatVIT">0</span>
                     </div>
-                    <div class="stat-row">
-                        <span class="stat-label" id="eqSpecialLabel">BLOK:</span>
-                        <span class="stat-value" id="eqSpecial">5%</span>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">HP:</span>
+                        <span class="eq-stat-value" id="eqStatHP">0/0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label" id="eqSpecialLabel">CRIT:</span>
+                        <span class="eq-stat-value" id="eqSpecialValue">0%</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- CANVAS -->
-        <canvas id="gameCanvas"></canvas>
-
-        <!-- HUD Toggle Button -->
-        <button id="hudToggleBtn">📊 HUD</button>
-
-        <!-- Minimap -->
-        <canvas id="minimap"></canvas>
-        <div id="gameTime" class="game-time">00:00:00</div>
-        
-        <!-- Ranking Button -->
-        <button id="rankingBtn" class="ranking-btn" title="Ranking graczy">🏆</button>
-        
         <!-- Ranking Modal -->
         <div id="rankingModal" class="ranking-modal hidden">
             <div class="ranking-container">
@@ -162,63 +261,6 @@
                 <div id="rankingList" class="ranking-list">
                     <div class="ranking-loading">Ładowanie rankingu...</div>
                 </div>
-            </div>
-        </div>
-
-        <!-- SKILL BAR (dolny HUD - zawsze widoczny) -->
-        <div id="battleHUD" class="battle-hud">
-            <div class="player-status">
-                <div class="status-bar">
-                    <h4 id="battlePlayerName">Ty</h4>
-                    <div class="battle-hp-bar">
-                        <div id="battlePlayerHp" class="battle-hp-fill"></div>
-                    </div>
-                    <span id="battlePlayerHpText">100/100</span>
-                </div>
-            </div>
-
-            <div class="skill-bar">
-                <button id="skillBtn1" class="skill-btn skill-1 attack-btn">
-                    <div class="skill-icon" id="skill1Icon">⚔</div>
-                    <div class="skill-name" id="skill1Name">Atak</div>
-                    <div class="skill-cd" id="skillCD1">GOTÓW</div>
-                </button>
-                <button id="skillBtn2" class="skill-btn skill-2">
-                    <div class="skill-icon" id="skill2Icon">🔥</div>
-                    <div class="skill-name" id="skill2Name">Kula Ognia</div>
-                    <div class="skill-cd" id="skillCD2">GOTÓW</div>
-                </button>
-                <button id="skillBtn3" class="skill-btn skill-3">
-                    <div class="skill-icon" id="skill3Icon">🛡</div>
-                    <div class="skill-name" id="skill3Name">Obrona</div>
-                    <div class="skill-cd" id="skillCD3">GOTÓW</div>
-                </button>
-            </div>
-
-            <div class="enemy-status">
-                <div class="status-bar">
-                    <h4 id="battleEnemyName">Brak wroga</h4>
-                    <div class="battle-hp-bar">
-                        <div id="battleEnemyHp" class="battle-hp-fill"></div>
-                    </div>
-                    <span id="battleEnemyHpText">--/--</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- QUEST PANEL -->
-        <div id="questPanel" class="quest-panel">
-            <div class="quest-panel-title">📋 Aktywne Misje</div>
-            <div id="questList" class="quest-list"></div>
-        </div>
-
-        <!-- CHAT PANEL -->
-        <div id="chatPanel" class="chat-panel">
-            <div class="chat-header">💬 Chat</div>
-            <div id="chatMessages" class="chat-messages"></div>
-            <div class="chat-input-wrapper">
-                <input type="text" id="chatInput" placeholder="Wpisz wiadomość..." maxlength="100">
-                <button id="chatSendBtn">📤</button>
             </div>
         </div>
 
