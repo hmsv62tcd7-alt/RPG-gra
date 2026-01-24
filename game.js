@@ -2298,6 +2298,8 @@ class Game {
         document.getElementById('gameContainer').classList.remove('hidden');
         // Resize canvas po pokazaniu kontenera - WAŻNE!
         this.resizeCanvas();
+        // Dodatkowy resize z timeoutem dla pewności
+        setTimeout(() => this.resizeCanvas(), 100);
         // Reset game state if already running
         this.gameRunning = false;
         if (this._gameLoopId) cancelAnimationFrame(this._gameLoopId);
@@ -2355,11 +2357,14 @@ class Game {
     resizeCanvas() {
         const container = document.getElementById('gameContainer');
         const rect = container ? container.getBoundingClientRect() : { width: CONFIG.CANVAS_WIDTH, height: CONFIG.CANVAS_HEIGHT };
+        console.log('[ResizeCanvas] Container rect:', rect);
         // Fallbacky na wypadek dziwnych wartości
         const safeWidth = Number.isFinite(rect.width) && rect.width > 0 ? rect.width : CONFIG.CANVAS_WIDTH;
         const safeHeight = Number.isFinite(rect.height) && rect.height > 0 ? rect.height : CONFIG.CANVAS_HEIGHT;
+        console.log('[ResizeCanvas] Setting canvas to:', safeWidth, 'x', safeHeight);
         this.canvas.width = safeWidth;
         this.canvas.height = safeHeight;
+        console.log('[ResizeCanvas] Actual canvas size:', this.canvas.width, 'x', this.canvas.height);
         this.cameraOffsetX = this.canvas.width / 2;
         this.cameraOffsetY = this.canvas.height / 2;
     }
@@ -4113,6 +4118,10 @@ class Game {
     // ============================================
 
     draw() {
+                if (!this.canvas || !this.canvas.width || !this.canvas.height) {
+                    console.error('[Draw] Canvas jest nieprawidłowy!', this.canvas?.width, this.canvas?.height);
+                    return;
+                }
         if (!Number.isFinite(this.currentMap)) this.currentMap = 1;
         if (this.player) {
             if (!Number.isFinite(this.player.x)) this.player.x = MAP_WIDTH / 2;
