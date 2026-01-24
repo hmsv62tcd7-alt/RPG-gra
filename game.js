@@ -52,7 +52,7 @@ const CONFIG = {
     CANVAS_HEIGHT: 700,
     TILE_SIZE: 32,
     PLAYER_SIZE: 30,
-    PLAYER_SPEED: 4,
+    PLAYER_SPEED: 2,
     NPC_SIZE: 30,
     ENEMY_SIZE: 35
 };
@@ -1497,7 +1497,62 @@ class Game {
         this.minimapCanvas.width = 150;
         this.minimapCanvas.height = 150;
 
-        // Wygeneruj mapę trawy raz
+        // Załaduj teksturę trawy
+        this.grassTexture = new Image();
+        this.grassTexture.src = 'Grafika/Cartoon_green_texture_grass.jpg';
+        this.grassTextureLoaded = false;
+        this.grassPattern = null;
+        this.grassTexture.onload = () => {
+            // Przeskaluj do mniejszego rozmiaru dla lepszej wydajności
+            const maxSize = 512;
+            const scale = Math.min(1, maxSize / Math.max(this.grassTexture.width, this.grassTexture.height));
+            
+            if (scale < 1) {
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = this.grassTexture.width * scale;
+                tempCanvas.height = this.grassTexture.height * scale;
+                tempCtx.drawImage(this.grassTexture, 0, 0, tempCanvas.width, tempCanvas.height);
+                this.grassPattern = this.ctx.createPattern(tempCanvas, 'repeat');
+            } else {
+                this.grassPattern = this.ctx.createPattern(this.grassTexture, 'repeat');
+            }
+            
+            this.grassTextureLoaded = true;
+        };
+
+        // Załaduj obrazek drzewa
+        this.treeTexture = new Image();
+        this.treeTexture.src = 'Grafika/hrnt_pev8_210210.jpg';
+        this.treeTextureLoaded = false;
+        this.processedTreeTexture = null;
+        this.treeTexture.onload = () => {
+            // Przeskaluj i przetwórz obrazek raz przy załadowaniu
+            const maxSize = 256;
+            const scale = Math.min(1, maxSize / Math.max(this.treeTexture.width, this.treeTexture.height));
+            
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = this.treeTexture.width * scale;
+            tempCanvas.height = this.treeTexture.height * scale;
+            tempCtx.drawImage(this.treeTexture, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+            
+            // Usuń białe tło
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] > 230 && data[i + 1] > 230 && data[i + 2] > 230) {
+                    data[i + 3] = 0;
+                }
+            }
+            
+            tempCtx.putImageData(imageData, 0, 0);
+            this.processedTreeTexture = tempCanvas;
+            this.treeTextureLoaded = true;
+        };
+
+        // Wygeneruj mapę trawy raz (backup gdyby tekstura się nie załadowała)
         this.mapGrassPattern = this.generateGrassPattern();
 
         this.gameRunning = false;
@@ -2718,12 +2773,13 @@ class Game {
     }
 
     generateTrees() {
-        // Rozrzuć 100 drzew po całej mapie
+        // Rozrzuć 30 drzew po całej mapie z losową skalą dla różnorodności
         this.trees = [];
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 30; i++) {
             this.trees.push({
                 x: Math.random() * MAP_WIDTH,
-                y: Math.random() * MAP_HEIGHT
+                y: Math.random() * MAP_HEIGHT,
+                scale: 0.8 + Math.random() * 0.6  // Losowa skala 0.8-1.4
             });
         }
     }
@@ -4246,24 +4302,30 @@ class Game {
     }
 
     drawMapGrass() {
-        // Pikselowa baza trawy
-        this.ctx.fillStyle = '#2f6b3a';
-        this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+        if (this.grassTextureLoaded && this.grassPattern) {
+            // Użyj gotowego wzorca trawy
+            this.ctx.fillStyle = this.grassPattern;
+            this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+        } else {
+            // Pikselowa baza trawy (backup)
+            this.ctx.fillStyle = '#2f6b3a';
+            this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
 
-        // Nałożona ziarnista tekstura (precomputed pattern)
-        for (let tile of this.mapGrassPattern) {
-            if (tile.type === 'dot') {
-                this.ctx.fillStyle = tile.color;
-                this.ctx.fillRect(tile.x, tile.y, tile.size, tile.size);
-            } else if (tile.type === 'tuft') {
-                this.ctx.strokeStyle = tile.color;
-                this.ctx.lineWidth = 1;
-                this.ctx.beginPath();
-                this.ctx.moveTo(tile.x, tile.y);
-                this.ctx.lineTo(tile.x, tile.y - tile.h);
-                this.ctx.moveTo(tile.x + 2, tile.y + 1);
-                this.ctx.lineTo(tile.x + 2 + tile.tilt, tile.y - tile.h + 2);
-                this.ctx.stroke();
+            // Nałożona ziarnista tekstura (precomputed pattern)
+            for (let tile of this.mapGrassPattern) {
+                if (tile.type === 'dot') {
+                    this.ctx.fillStyle = tile.color;
+                    this.ctx.fillRect(tile.x, tile.y, tile.size, tile.size);
+                } else if (tile.type === 'tuft') {
+                    this.ctx.strokeStyle = tile.color;
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(tile.x, tile.y);
+                    this.ctx.lineTo(tile.x, tile.y - tile.h);
+                    this.ctx.moveTo(tile.x + 2, tile.y + 1);
+                    this.ctx.lineTo(tile.x + 2 + tile.tilt, tile.y - tile.h + 2);
+                    this.ctx.stroke();
+                }
             }
         }
 
@@ -4824,7 +4886,7 @@ class Game {
                 if (tree.x >= villageBounds.x1 && tree.x <= villageBounds.x2 && tree.y >= villageBounds.y1 && tree.y <= villageBounds.y2) {
                     continue; // omijaj drzewa w obrębie wioski, by nie nachodziły na budynki
                 }
-                this.drawLargeTree(tree.x, tree.y);
+                this.drawLargeTree(tree.x, tree.y, tree.scale);
             }
 
             // Rysuj kwiaty
@@ -4838,7 +4900,7 @@ class Game {
 
             // Mniej drzew w mieście
             for (let i = 0; i < Math.min(5, this.trees.length); i++) {
-                this.drawLargeTree(this.trees[i].x, this.trees[i].y);
+                this.drawLargeTree(this.trees[i].x, this.trees[i].y, this.trees[i].scale);
             }
         }
     }
@@ -6046,8 +6108,23 @@ class Game {
         }
     }
 
-    drawLargeTree(x, y) {
-        // Pikselowo-cieniowane drzewo w stylu ref
+    drawLargeTree(x, y, scale = 1, rotation = 0) {
+        if (this.treeTextureLoaded && this.processedTreeTexture) {
+            // Użyj przetworzonego obrazka drzewa
+            const treeWidth = 80 * scale;
+            const treeHeight = 100 * scale;
+            
+            this.ctx.drawImage(
+                this.processedTreeTexture,
+                x - treeWidth / 2,
+                y - treeHeight,
+                treeWidth,
+                treeHeight
+            );
+            return;
+        }
+        
+        // Pikselowo-cieniowane drzewo w stylu ref (backup)
         const key = `tree_${Math.round(x)}_${Math.round(y)}`;
         if (!this.treeDetails[key]) {
             const seedBase = (Math.floor(x) * 73856093) ^ (Math.floor(y) * 19349663);
