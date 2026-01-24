@@ -6857,11 +6857,12 @@ class Game {
             if (this.tradeState && this.tradeState.finalized && !this.tradeApplied) {
                 this.applyTradeFinalization(this.tradeState);
             } else {
-                // Jeśli partner zaakceptował i okno jest ukryte, otwórz je u obu graczy
+                // Otwórz okno dopiero gdy ktoś zaakceptował (accepted == true)
                 const tradeWindow = document.getElementById('tradeWindow');
-                if (tradeWindow && tradeWindow.classList.contains('hidden')) {
+                if (this.tradeState.accepted && tradeWindow && tradeWindow.classList.contains('hidden')) {
                     this.openTradeWindow();
                 }
+                // Jeśli brak akceptacji – nie wyświetlaj okna u nadawcy
                 this.updateTradeWindow();
             }
         });
@@ -6966,7 +6967,7 @@ class Game {
         };
         database.ref('invites/' + targetPlayerId + '/trade').set(inviteData).then(() => {
             sendSystemMessage('Wysłano zaproszenie do handlu!');
-            // Pre-init trade session so it exists when accepted
+            // Utwórz stan handlu, ale nie otwieraj okna dopóki druga strona nie zaakceptuje
             this.currentTradePartnerId = targetPlayerId;
             this.startTradeSession(targetPlayerId);
         }).catch((error) => {
@@ -6978,6 +6979,11 @@ class Game {
         if (!currentUser) return;
         this.currentTradePartnerId = partnerId;
         this.startTradeSession(partnerId);
+        // Oznacz w bazie że handel zaakceptowano – to otworzy okno u nadawcy
+        const tradeId = this.getTradeIdFor(partnerId);
+        if (tradeId) {
+            database.ref('trades/' + tradeId + '/accepted').set(true);
+        }
         this.openTradeWindow();
     }
 
@@ -7095,12 +7101,12 @@ class Game {
             const request = snapshot.val();
             console.log('[Friends] Received friend request:', request);
             if (request && request.from !== currentUser.uid) {
-                const accept = confirm(`${request.fromName} wysłał zaproszenie do znajomych. Zaakceptujesz?`);
-                if (accept) {
-                    this.acceptFriendRequest(request.from, snapshot.key);
-                } else {
-                    snapshot.ref.remove();
-                }
+                this.showInvitationModal(
+                    '⭐ Zaproszenie do znajomych',
+                    `${request.fromName} wysłał zaproszenie do znajomych. Zaakceptujesz?`,
+                    () => this.acceptFriendRequest(request.from, snapshot.key),
+                    () => snapshot.ref.remove()
+                );
             }
         }, (error) => {
             console.error('[Friends] Listener error:', error);
