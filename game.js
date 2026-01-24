@@ -2325,6 +2325,10 @@ class Game {
         lastNotifiedUpdateVersion = null;  // Zresetuj żeby móc wysłać nowe powiadomienia
         // Initialize multiplayer after player is fully ready
         this.initMultiplayer();
+        // Ustaw Firebase listeners dla zaproszeń (MUSZĄ być PO zalogowaniu!)
+        this.listenForInvites();
+        this.loadFriendsList();
+        this.listenForFriendRequests();
         // Send system message to chat
         sendSystemMessage(`${slot.name} zalogował się do gry`);
         // Inicjalizuj sprawdzanie aktualizacji (tylko gdy gracz jest w grze)
@@ -6617,10 +6621,6 @@ class Game {
                 this.cancelTrade();
             });
         }
-
-        this.listenForInvites();
-        this.loadFriendsList();
-        this.listenForFriendRequests();
     }
 
     // ========== LEFT-CLICK PLAYER SELECTION ==========
@@ -6673,26 +6673,40 @@ class Game {
     }
 
     listenForInvites() {
-        if (!currentUser) return;
-        database.ref('invites/' + currentUser.uid + '/party').on('value', (snapshot) => {
+        if (!currentUser) {
+            console.warn('[Invites] currentUser nie istnieje!');
+            return;
+        }
+        console.log('[Invites] Setting up listeners for user:', currentUser.uid);
+        
+        // Party invitations
+        database.ref('invites/' + currentUser.uid + '/party').on('child_added', (snapshot) => {
             const invite = snapshot.val();
+            console.log('[Invites] Received party invite:', invite);
             if (invite) {
                 const accept = confirm(`${invite.fromName} zaprasza Cię do party. Akceptujesz?`);
                 if (accept) {
                     this.acceptPartyInvite(invite.from);
                 }
-                database.ref('invites/' + currentUser.uid + '/party').remove();
+                snapshot.ref.remove();
             }
+        }, (error) => {
+            console.error('[Invites] Party listener error:', error);
         });
-        database.ref('invites/' + currentUser.uid + '/trade').on('value', (snapshot) => {
+        
+        // Trade invitations
+        database.ref('invites/' + currentUser.uid + '/trade').on('child_added', (snapshot) => {
             const invite = snapshot.val();
+            console.log('[Invites] Received trade invite:', invite);
             if (invite) {
                 const accept = confirm(`${invite.fromName} zaprasza Cię do handlu. Akceptujesz?`);
                 if (accept) {
                     this.acceptTradeInvite(invite.from);
                 }
-                database.ref('invites/' + currentUser.uid + '/trade').remove();
+                snapshot.ref.remove();
             }
+        }, (error) => {
+            console.error('[Invites] Trade listener error:', error);
         });
     }
 
@@ -7032,9 +7046,14 @@ class Game {
     }
 
     listenForFriendRequests() {
-        if (!currentUser) return;
+        if (!currentUser) {
+            console.warn('[Friends] currentUser nie istnieje!');
+            return;
+        }
+        console.log('[Friends] Setting up friend request listener for user:', currentUser.uid);
         database.ref('friendRequests/' + currentUser.uid).on('child_added', (snapshot) => {
             const request = snapshot.val();
+            console.log('[Friends] Received friend request:', request);
             if (request && request.from !== currentUser.uid) {
                 const accept = confirm(`${request.fromName} wysłał zaproszenie do znajomych. Zaakceptujesz?`);
                 if (accept) {
@@ -7043,6 +7062,8 @@ class Game {
                     snapshot.ref.remove();
                 }
             }
+        }, (error) => {
+            console.error('[Friends] Listener error:', error);
         });
     }
 
