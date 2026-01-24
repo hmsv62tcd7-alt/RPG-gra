@@ -1012,7 +1012,7 @@ class Enemy {
         const villageX = 420, villageY = 360;
         
         // SAFE_RECT w WORLD coords - prostokąt pokrywający kamienną podłogę + margines
-        const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+        const SAFE_RECT = { x: 135, y: 95, w: 570, h: 590 };
         
         // Helper: sprawdzić czy punkt jest w safe zone
         const insideSafe = (px, py) => {
@@ -3226,8 +3226,8 @@ class Game {
         const villageX = 420, villageY = 360; // Środek wioski
         
         // SAFE_RECT w WORLD coords - prostokąt pokrywający kamienną podłogę + margines
-        // Kamień: (180,140) do (660,640), rozszerzamy o ~20px marginesu
-        const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+        // Powiększony aby na pewno pokryć całą kamienną podłogę wioski
+        const SAFE_RECT = { x: 135, y: 95, w: 570, h: 590 };
         
         // Helper: sprawdzić czy punkt jest w safe zone
         const insideSafe = (px, py) => {
@@ -3249,7 +3249,7 @@ class Game {
         console.log('%c========================================', 'color: #00FF00; font-weight: bold;');
         
         const SAFE_RADIUS = 320; // Brak mobów wokół wioski (rozszerzone na całe domki)
-        const MIN_DIST = 110; // Minimalny dystans między mobami (anti-stack)
+        const MIN_DIST = 160; // Minimalny dystans między mobami (anti-stack) - ZWIĘKSZONY
         let seedCounter = 1;
         const seededRandom = (seed) => {
             const x = Math.sin(seed) * 10000;
@@ -3384,16 +3384,16 @@ class Game {
         };
 
         // ZONE 1 (LOW): 320-1050px od wioski -> wolf/boar/whelp/bear (easy)
-        // Losowo 45-60 mobów, mniejsza szansa grupowania
-        placeZone(randomCount(45, 60), 320, 1050, 120, ['wolf', 'boar', 'whelp', 'bear'], 'easy', 0.14);
+        // 30-45 mobów, rzedzej rozmieszczone
+        placeZone(randomCount(30, 45), 320, 1050, 160, ['wolf', 'boar', 'whelp', 'bear'], 'easy', 0.10);
         
         // ZONE 2 (MID): 1150-2050px od wioski -> boar/bear/wasp/snake/spider (medium)
-        // Losowo 35-50 mobów, mniejsza szansa grupowania
-        placeZone(randomCount(35, 50), 1150, 2050, 140, ['boar', 'bear', 'wasp', 'snake', 'spider'], 'medium', 0.12);
+        // 25-35 mobów, rzedzej rozmieszczone
+        placeZone(randomCount(25, 35), 1150, 2050, 180, ['boar', 'bear', 'wasp', 'snake', 'spider'], 'medium', 0.08);
         
         // ZONE 3 (HARD): 2150-3050px od wioski -> wasp/snake/spider/bandit/golem (hard)
-        // Losowo 25-40 mobów, mniejsza szansa grupowania
-        placeZone(randomCount(25, 40), 2150, 3050, 160, ['wasp', 'snake', 'spider', 'bandit', 'golem'], 'hard', 0.10);
+        // 15-25 mobów, rzedzej rozmieszczone
+        placeZone(randomCount(15, 25), 2150, 3050, 200, ['wasp', 'snake', 'spider', 'bandit', 'golem'], 'hard', 0.06);
     }
 
     generateTrees() {
@@ -4866,7 +4866,7 @@ class Game {
 
         // DEBUG: Narysuj safe zone rect na mapie (WORLD coords)
         if (this.currentMap === 1) {
-            const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+            const SAFE_RECT = { x: 135, y: 95, w: 570, h: 590 };
             console.log("[DEBUG_DRAW] SAFE_RECT:", SAFE_RECT);
             
             // Rysuj prostokąt
@@ -4882,7 +4882,7 @@ class Game {
             this.ctx.textAlign = 'center';
             this.ctx.shadowColor = '#000';
             this.ctx.shadowBlur = 3;
-            this.ctx.fillText(`SAFE_ZONE (160,120 -> 680,660)`, textX, textY);
+            this.ctx.fillText(`SAFE_ZONE (135,95 -> 705,685)`, textX, textY);
             this.ctx.shadowColor = 'transparent';
         }
 

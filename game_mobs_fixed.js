@@ -987,7 +987,7 @@ class Enemy {
 
     update(playerX, playerY) {
         // SAFE_RECT w WORLD coords - prostokąt pokrywający kamienną podłogę + margines
-        const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+        const SAFE_RECT = { x: 135, y: 95, w: 570, h: 590 };
         
         // Helper: sprawdzić czy punkt jest w safe zone
         const insideSafe = (px, py) => {
@@ -2714,7 +2714,7 @@ class Game {
         const campX = 1800, campY = 1800;
         
         // SAFE_RECT w WORLD coords - prostokąt pokrywający kamienną podłogę + margines
-        const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+        const SAFE_RECT = { x: 135, y: 95, w: 570, h: 590 };
         
         // Helper: sprawdzić czy punkt jest w safe zone
         const insideSafe = (px, py) => {
@@ -4305,7 +4305,7 @@ class Game {
 
         // DEBUG: Narysuj safe zone rect na mapie (WORLD coords)
         if (this.currentMap === 1) {
-            const SAFE_RECT = { x: 160, y: 120, w: 520, h: 540 };
+            const SAFE_RECT = { x: 135, y: 95, w: 570, h: 590 };
             console.log("[DEBUG_DRAW] SAFE_RECT:", SAFE_RECT);
             
             // Rysuj prostokąt
@@ -4321,7 +4321,7 @@ class Game {
             this.ctx.textAlign = 'center';
             this.ctx.shadowColor = '#000';
             this.ctx.shadowBlur = 3;
-            this.ctx.fillText(`SAFE_ZONE (160,120 -> 680,660)`, textX, textY);
+            this.ctx.fillText(`SAFE_ZONE (135,95 -> 705,685)`, textX, textY);
             this.ctx.shadowColor = 'transparent';
         }
 
