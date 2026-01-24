@@ -1,0 +1,294 @@
+--- game.js
++++ game.js
+@@ -255,7 +255,7 @@
+         
+         // System exp
+         this.exp = 0;
+-        this.maxExp = 100;
++        this.maxExp = 80; // balans: wolniejszy progres, ale exp też leci z mobów
+         
+         this.velocityX = 0;
+         this.velocityY = 0;
+@@ -445,7 +445,7 @@
+     levelUp() {
+         this.level++;
+         this.exp -= this.maxExp;
+-        this.maxExp = Math.floor(this.maxExp * 1.6);
++        this.maxExp = Math.floor(this.maxExp * 1.35 + 20); // łagodniejsza krzywa exp do ~10lv po całej mapie
+         this.maxHp += 20;
+         this.hp = this.maxHp;
+     }
+@@ -922,6 +922,25 @@
+             'wasp': { maxHp: 20, damage: 5, defense: 0, range: 180 },
+             'snake': { maxHp: 35, damage: 7, defense: 1, range: 110 }
+         };
++
++        // Poziomy potworów (do wyświetlania i balansu exp/gold)
++        const baseLevels = {
++            'wolf': 1,
++            'boar': 2,
++            'whelp': 2,
++            'bear': 3,
++            'wasp': 5,
++            'snake': 6,
++            'spider': 7,
++            'bandit': 8,
++            'golem': 9
++        };
++
++        // ELITA (specjalny przypadek) — Golem Starożytny
++        const isEliteGolem = (this.type === 'golem' && /Starożytny/i.test(this.name));
++        this.level = isEliteGolem ? 10 : (baseLevels[this.type] || 1);
++        this.isElite = isEliteGolem;
++
+         
+         const baseStat = baseStats[this.type] || baseStats['boar'];
+         let multiplier = 1;
+@@ -940,7 +959,31 @@
+         this.damage = Math.floor(baseStat.damage * multiplier);
+         this.defense = baseStat.defense;
+         this.aggroRange = baseStat.range;
+-    }
++
++        // Nagrody za zabicie (EXP zawsze, gold z szansą)
++        // EXP rośnie z levelem i trudnością, ale nie pozwala wbić 10lv w 10 minut.
++        const diffMul = (this.difficulty === "easy") ? 0.9 : (this.difficulty === "medium") ? 1.15 : 1.35;
++        const baseExpByLevel = {1: 6, 2: 8, 3: 11, 4: 14, 5: 18, 6: 22, 7: 26, 8: 30, 9: 36, 10: 50};
++        this.expReward = Math.floor((baseExpByLevel[this.level] || 6) * diffMul);
++
++        // Gold — szansa + zakres zależny od levela
++        const goldChanceByLevel = {1: 0.18, 2: 0.20, 3: 0.22, 5: 0.26, 6: 0.30, 7: 0.33, 8: 0.36, 9: 0.40, 10: 0.55};
++        const goldRangeByLevel = {
++            1: [1, 4],
++            2: [2, 6],
++            3: [3, 8],
++            5: [4, 10],
++            6: [5, 12],
++            7: [6, 15],
++            8: [8, 20],
++            9: [10, 26],
++            10: [25, 55]
++        };
++        const gr = goldRangeByLevel[this.level] || [1, 4];
++        this.goldDropChance = goldChanceByLevel[this.level] ?? 0.2;
++        this.goldMin = gr[0];
++        this.goldMax = gr[1];
++}
+ 
+     update(playerX, playerY) {
+         // Sprawdzenie czy gracz jest w zasięgu
+@@ -2624,84 +2667,106 @@
+     }
+ 
+     generateEnemies() {
+-        // Generuj 25 potworów na całej mapie z podziałem na strefy trudności
++        // Rozrzuceni przeciwnicy po mapie, ale z kontrolą stref (żeby low-lv nie lądował na końcu mapy)
+         this.enemies = [];
+-        const enemyNames = {
+-            'boar': ['Dzik', 'Dzik Leśny', 'Śnieżny Dzik'],
+-            'wolf': ['Wilk', 'Wilk Szary', 'Wilk Alfa'],
+-            'bear': ['Niedźwiedź', 'Niedźwiedź Brunatny', 'Niedźwiedź Górski'],
+-            'whelp': ['Wilczek', 'Małe Szczenię', 'Szczenię Wilka'],
+-            'wasp': ['Osa', 'Osa Gigantyczna', 'Osa Warjatka'],
+-            'snake': ['Wąż', 'Wąż Żmija', 'Wąż Wędrujący']
+-        };
+-        
+-        // STREFA 1: OBÓZ (łatwa) - misje 1-3 (poziomy 1-3)
+-        // Pozycja gracza zwykle ok 2000x2000, obóz w okolicy ~1500-2500
++
+         const campX = 1800, campY = 1800;
+-        const campRadius = 600; // Promień około obozu
+-        
+-        // Funkcja deterministycznego "losowania" na podstawie indeksu
++        let seedCounter = 1;
+         const seededRandom = (seed) => {
+             const x = Math.sin(seed) * 10000;
+             return x - Math.floor(x);
+         };
+-        
+-        // Dziki i Wilki dla początkujących
+-        const easyTypes = ['boar', 'whelp', 'wolf'];
+-        for (let i = 0; i < 8; i++) {
+-            const type = easyTypes[i % easyTypes.length];
+-            const angle = seededRandom(i * 100) * Math.PI * 2;
+-            const distance = seededRandom(i * 100 + 50) * campRadius;
+-            const x = campX + Math.cos(angle) * distance;
+-            const y = campY + Math.sin(angle) * distance;
+-            
+-            const typeNames = enemyNames[type];
+-            const name = typeNames[Math.floor(seededRandom(i * 100 + 25) * typeNames.length)];
+-            
+-            const enemy = new Enemy(x, y, name, type);
+-            enemy.difficulty = 'easy'; // Łatwy
+-            this.enemies.push(enemy);
+-        }
+-        
+-        // STREFA 2: ŚREDNIOZAAWANSOWANA (1000-2500 od obozu)
+-        // Misje 4-6 (poziomy 4-6)
+-        for (let i = 0; i < 9; i++) {
+-            const types = ['snake', 'wasp', 'wolf', 'boar'];
+-            const type = types[i % types.length];
+-            
+-            // Deterministyczna pozycja dalej od obozu
+-            const x = 500 + seededRandom(i * 200 + 1000) * 2000;
+-            const y = 500 + seededRandom(i * 200 + 1500) * 2000;
+-            
+-            // Jeśli zbyt blisko obozu, przesuń
+-            const distToCamp = Math.sqrt(Math.pow(x - campX, 2) + Math.pow(y - campY, 2));
+-            if (distToCamp < campRadius + 400) continue;
+-            
+-            const typeNames = enemyNames[type];
+-            const name = typeNames[Math.floor(seededRandom(i * 200 + 2000) * typeNames.length)];
+-            
+-            const enemy = new Enemy(x, y, name, type);
+-            enemy.difficulty = 'medium'; // Średni
+-            this.enemies.push(enemy);
+-        }
+-        
+-        // STREFA 3: TRUDNA (koniec mapy 2500-4000)
+-        // Misje 7-10 (poziomy 7-10)
+-        for (let i = 0; i < 8; i++) {
+-            const types = ['bear', 'snake', 'wasp', 'wolf'];
+-            const type = types[i % types.length];
+-            
+-            // Deterministyczna pozycja na końcu mapy
+-            const x = 2500 + seededRandom(i * 300 + 3000) * 1300;
+-            const y = 2500 + seededRandom(i * 300 + 3500) * 1300;
+-            
+-            const typeNames = enemyNames[type];
+-            const name = typeNames[Math.floor(seededRandom(i * 300 + 4000) * typeNames.length)];
+-            
+-            const enemy = new Enemy(x, y, name, type);
+-            enemy.difficulty = 'hard'; // Trudny
+-            this.enemies.push(enemy);
+-        }
++        const rand = () => seededRandom(seedCounter++);
++
++        // Konfiguracja mobów (nazwy + level + ew. ELITA)
++        const mobCfg = {
++            wolf:   { level: 1, names: ['Wilk', 'Wilk Szary', 'Wilk Alfa'] },
++            boar:   { level: 2, names: ['Dzik', 'Dzik Leśny', 'Śnieżny Dzik'] },
++            whelp:  { level: 2, names: ['Wilczek', 'Małe Szczenię', 'Szczenię Wilka'] },
++            bear:   { level: 3, names: ['Niedźwiedź', 'Niedźwiedź Brunatny', 'Niedźwiedź Górski'] },
++            wasp:   { level: 5, names: ['Osa', 'Osa Gigantyczna', 'Osa Warjatka'] },
++            snake:  { level: 6, names: ['Wąż', 'Wąż Żmija', 'Wąż Wędrujący'] },
++            spider: { level: 7, names: ['Pająk', 'Pająk Jadowity', 'Tarantula'] },
++            bandit: { level: 8, names: ['Bandyta', 'Rabuś', 'Zbójca'] },
++            golem:  { level: 9, names: ['Golem', 'Golem Kamienny'] }
++        };
++
++        const margin = 140; // bezpieczny margines od krawędzi mapy (żeby nie „przyklejało” do końca)
++        const inBounds = (x, y) => x >= margin && x <= MAP_WIDTH - margin && y >= margin && y <= MAP_HEIGHT - margin;
++
++        // Pomocnicza funkcja do kładzenia mobów w paśmie odległości z minimalnym dystansem
++        const placeZone = (count, distMin, distMax, minSpacing, pool, difficulty, pairChance = 0.22) => {
++            const placed = [];
++            let attempts = 0;
++
++            while (placed.length < count && attempts < count * 80) {
++                attempts++;
++
++                const angle = rand() * Math.PI * 2;
++                const dist = distMin + rand() * (distMax - distMin);
++                const x = campX + Math.cos(angle) * dist;
++                const y = campY + Math.sin(angle) * dist;
++
++                // Zamiast clamp — odrzucaj pozycje poza mapą (eliminuje zbijanie na końcach mapy)
++                if (!inBounds(x, y)) continue;
++
++                let tooClose = false;
++                for (const p of placed) {
++                    const dx = p.x - x;
++                    const dy = p.y - y;
++                    if (dx * dx + dy * dy < minSpacing * minSpacing) { tooClose = true; break; }
++                }
++                if (tooClose) continue;
++
++                placed.push({ x, y });
++
++                // mała para obok (2 max) — ale bez wielkich kup
++                if (placed.length < count && rand() < pairChance) {
++                    const oa = rand() * Math.PI * 2;
++                    const od = 28 + rand() * 36;
++                    const nx = x + Math.cos(oa) * od;
++                    const ny = y + Math.sin(oa) * od;
++                    if (inBounds(nx, ny)) {
++                        let ok = true;
++                        for (const p of placed) {
++                            const dx = p.x - nx;
++                            const dy = p.y - ny;
++                            if (dx * dx + dy * dy < (minSpacing * 0.75) * (minSpacing * 0.75)) { ok = false; break; }
++                        }
++                        if (ok) placed.push({ x: nx, y: ny });
++                    }
++                }
++            }
++
++            // Utwórz wrogów z rozstawionych pozycji
++            placed.slice(0, count).forEach((pos) => {
++                const entry = pool[Math.floor(rand() * pool.length)];
++                const cfg = mobCfg[entry] || mobCfg.boar;
++
++                let baseName = cfg.names[Math.floor(rand() * cfg.names.length)];
++                let level = cfg.level || 1;
++
++                // ELITA: Golem Starożytny (rzadko, tylko w hard)
++                if (entry === 'golem' && difficulty === 'hard' && rand() < 0.10) {
++                    baseName = "Golem Starożytny (ELITA)";
++                    level = 10;
++                }
++
++                const name = `${baseName} (${level}lv)`;
++                const enemy = new Enemy(pos.x, pos.y, name, entry);
++                enemy.difficulty = difficulty;
++                if (typeof enemy.initStats === 'function') enemy.initStats();
++                this.enemies.push(enemy);
++            });
++        };
++
++        // Strefy (od obozu):
++        // - Zone1: lvl 1-3 (nie ma prawa wolf respować się na końcu)
++        // - Zone2: lvl 2-6
++        // - Zone3: lvl 6-10 (dalej od obozu)
++        placeZone(70, 180, 950, 120, ['wolf', 'boar', 'whelp', 'bear'], 'easy', 0.25);
++        placeZone(65, 1050, 1850, 140, ['boar', 'bear', 'wasp', 'snake'], 'medium', 0.22);
++        placeZone(55, 1950, 2850, 160, ['snake', 'wasp', 'spider', 'bandit', 'golem'], 'hard', 0.18);
+     }
+ 
+     generateTrees() {
+@@ -3373,7 +3438,20 @@
+             
+             // Update quest progress
+             this.updateQuestProgress(this.currentEnemy);
+-        }
++        
++
++            // Nagrody za zabicie (EXP + gold z szansą)
++            if (typeof this.currentEnemy.expReward === "number") {
++                this.player.addExp(this.currentEnemy.expReward);
++            }
++            if (Math.random() < (this.currentEnemy.goldDropChance ?? 0)) {
++                const gmin = this.currentEnemy.goldMin ?? 1;
++                const gmax = this.currentEnemy.goldMax ?? gmin;
++                const gold = gmin + Math.floor(Math.random() * (gmax - gmin + 1));
++                this.player.addGold(gold);
++                console.log(`💰 +${gold} gold`);
++            }
++}
+     }
+ 
+     respawnPlayer() {
+@@ -3408,8 +3486,11 @@
+             'wolf': new Item("Futro Wilka", "🐺", 'drop', null, 1),
+             'bear': new Item("Szapa Niedźwiedzia", "🐾", 'drop', null, 1),
+             'whelp': new Item("Pazury Wilczka", "🐾", 'drop', null, 1),
+-            'wasp': new Item("Żądło Osy", "⚔", 'drop', null, 1),
+-            'snake': new Item("Jad Węża", "☠", 'drop', null, 1)
++            'wasp': new Item("Żądło Osy", "🦂", 'drop', null, 1),
++            'snake': new Item("Jad Węża", "☠", 'drop', null, 1),
++            'spider': new Item("Pajęczyna", "🕸", 'drop', null, 1),
++            'bandit': new Item("Sakwa Bandyty", "💰", 'drop', null, 1),
++            'golem': new Item("Odłamek Kamienia", "💎", 'drop', null, 1)
+         };
+         
+         // Zliczaj postęp dla aktywnych misji
