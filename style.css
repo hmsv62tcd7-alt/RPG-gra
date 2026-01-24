@@ -1297,6 +1297,8 @@ canvas {
 .modal-btn { background:#d4af37; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; color:#1b130d; font-weight:bold; }
 .modal-btn:hover { filter:brightness(0.95); }
 .modal-btn.secondary { background:#8b7355; color:#fff; }
+.modal-btn.accent-btn { background:#4CAF50; color:#fff; font-size:1.1rem; padding:10px 16px; }
+.modal-btn.accent-btn:hover { background:#45a049; }
 
 /* Loading screen */
 .loading-screen {

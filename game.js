@@ -6672,6 +6672,31 @@ class Game {
         });
     }
 
+    showInvitationModal(title, message, onAccept, onReject) {
+        const modal = document.getElementById('invitationModal');
+        const titleEl = document.getElementById('invitationTitle');
+        const messageEl = document.getElementById('invitationMessage');
+        const acceptBtn = document.getElementById('invitationAccept');
+        const rejectBtn = document.getElementById('invitationReject');
+        
+        if (!modal) return;
+        
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        
+        // Usun stare listenery
+        acceptBtn.onclick = () => {
+            modal.classList.add('hidden');
+            if (onAccept) onAccept();
+        };
+        rejectBtn.onclick = () => {
+            modal.classList.add('hidden');
+            if (onReject) onReject();
+        };
+        
+        modal.classList.remove('hidden');
+    }
+
     listenForInvites() {
         if (!currentUser) {
             console.warn('[Invites] currentUser nie istnieje!');
@@ -6684,11 +6709,12 @@ class Game {
             const invite = snapshot.val();
             console.log('[Invites] Received party invite:', invite);
             if (invite) {
-                const accept = confirm(`${invite.fromName} zaprasza Cię do party. Akceptujesz?`);
-                if (accept) {
-                    this.acceptPartyInvite(invite.from);
-                }
-                snapshot.ref.remove();
+                this.showInvitationModal(
+                    '👥 Zaproszenie do Party',
+                    `${invite.fromName} zaprasza Cię do party. Akceptujesz?`,
+                    () => this.acceptPartyInvite(invite.from),
+                    () => snapshot.ref.remove()
+                );
             }
         }, (error) => {
             console.error('[Invites] Party listener error:', error);
@@ -6699,11 +6725,12 @@ class Game {
             const invite = snapshot.val();
             console.log('[Invites] Received trade invite:', invite);
             if (invite) {
-                const accept = confirm(`${invite.fromName} zaprasza Cię do handlu. Akceptujesz?`);
-                if (accept) {
-                    this.acceptTradeInvite(invite.from);
-                }
-                snapshot.ref.remove();
+                this.showInvitationModal(
+                    '💰 Zaproszenie do Handlu',
+                    `${invite.fromName} zaprasza Cię do handlu. Akceptujesz?`,
+                    () => this.acceptTradeInvite(invite.from),
+                    () => snapshot.ref.remove()
+                );
             }
         }, (error) => {
             console.error('[Invites] Trade listener error:', error);
