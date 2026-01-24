@@ -1530,6 +1530,8 @@ class Game {
         this.tradeAccepted = false;
         this.tradeTimeout = null;
         this.tradeApplied = false;
+        this.tradeRef = null;  // Reference do Firebase listener dla handlu
+        this.partyRef = null;  // Reference do Firebase listener dla party
         this.whisperChats = {};
         this.currentWhisperWith = null;
 
@@ -6783,6 +6785,11 @@ class Game {
 
     leaveParty() {
         if (!this.currentPartyId || !currentUser) return;
+        // Odłącz listener party
+        if (this.partyRef) {
+            this.partyRef.off('value');
+            this.partyRef = null;
+        }
         database.ref('parties/' + this.currentPartyId + '/members/' + currentUser.uid).remove().then(() => {
             this.currentPartyId = null;
             document.getElementById('partyPanel').classList.add('hidden');
@@ -6832,6 +6839,7 @@ class Game {
         this.tradeApplied = false;
         this.startTradeTimeout();
         const baseRef = database.ref('trades/' + tradeId);
+        this.tradeRef = baseRef;  // Zapisz referencję!
         baseRef.once('value').then((snap) => {
             if (!snap.exists()) {
                 baseRef.set({
@@ -7068,6 +7076,11 @@ class Game {
         this.tradeOfferGold = 0;
         this.tradeAccepted = false;
         this.clearTradeTimeout();
+        // Odłącz listener ZANIM usuniesz wpis w bazie
+        if (this.tradeRef) {
+            this.tradeRef.off('value');
+            this.tradeRef = null;
+        }
         // Usuń stan handlu w bazie, aby drugi gracz także zamknął okno
         if (tradeId) {
             database.ref('trades/' + tradeId).remove().catch(e => {});
