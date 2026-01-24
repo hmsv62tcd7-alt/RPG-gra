@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG 2D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Manrope:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="context-menu.css">
+</head>
+<body>
+    <!-- LOGIN/REGISTER SCREEN -->
+    <div id="authScreen" class="menu">
+        <div class="menu-container">
+            <h1>RPG 2D</h1>
+            <div id="loginForm" class="auth-form">
+                <h3>Zaloguj się</h3>
+                <input type="email" id="loginEmail" placeholder="Email" class="auth-input">
+                <input type="password" id="loginPassword" placeholder="Hasło" class="auth-input">
+                <button id="loginBtn" class="menu-btn">Zaloguj</button>
+                <p id="loginError" class="auth-error"></p>
+                <p style="margin-top: 20px;">Nie masz konta? <button id="showRegisterBtn" class="link-btn">Zarejestruj się</button></p>
+            </div>
+            <div id="registerForm" class="auth-form hidden">
+                <h3>Rejestracja</h3>
+                <input type="email" id="registerEmail" placeholder="Email" class="auth-input">
+                <input type="password" id="registerPassword" placeholder="Hasło (min 6 znaków)" class="auth-input">
+                <input type="password" id="registerPassword2" placeholder="Powtórz hasło" class="auth-input">
+                <button id="registerBtn" class="menu-btn">Zarejestruj</button>
+                <p id="registerError" class="auth-error"></p>
+                <p style="margin-top: 20px;"><button id="showLoginBtn" class="link-btn">Powrót do logowania</button></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MENU STARTOWE -->
+    <div id="mainMenu" class="menu hidden">
+        <div class="menu-container">
+            <h1>RPG 2D</h1>
+            <button id="newGameBtn" class="menu-btn">Graj</button>
+            <button id="logoutBtn" class="menu-btn secondary">Wyloguj</button>
+        </div>
+    </div>
+
+    <!-- GRA -->
+    <div id="gameContainer" class="hidden">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- UI OVERLAY -->
+        <div id="uiLayer">
+            <div class="ui-top-left">
+                <canvas id="minimap"></canvas>
+                <div id="gameTime" class="game-time">00:00:00</div>
+                <div id="hud" class="hud">
+                    <div class="hud-item">
+                        <span>HP:</span>
+                        <div class="hp-bar">
+                            <div id="hpFill" class="hp-fill"></div>
+                        </div>
+                        <span id="hpText">100/100</span>
+                    </div>
+                    <div class="hud-item">
+                        <span id="levelText">LVL: 1</span>
+                    </div>
+                    <div class="hud-item">
+                        <span>EXP:</span>
+                        <div class="exp-bar">
+                            <div id="expFill" class="exp-fill"></div>
+                        </div>
+                        <span id="expText">0/100</span>
+                    </div>
+                    <div class="hud-item">
+                        <span id="goldText">Gold: 0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span id="invText">EQ: 0/20</span>
+                    </div>
+                    <div class="hud-item">
+                        <span id="posText">Pozycja: 0, 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ui-top-right">
+                <div id="questPanel" class="quest-panel">
+                    <div class="quest-panel-header">
+                        <div class="quest-panel-title">📋 Aktywne Misje</div>
+                        <button id="rankingBtn" class="ranking-btn" title="Ranking graczy">🏆</button>
+                    </div>
+                    <div id="questList" class="quest-list"></div>
+                </div>
+            </div>
+
+            <div class="chat-floating">
+                <div id="chatPanel" class="chat-panel">
+                    <div class="chat-header">💬 Chat</div>
+                    <div id="chatMessages" class="chat-messages"></div>
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="chatInput" placeholder="Wpisz wiadomość..." maxlength="100">
+                        <button id="chatSendBtn">📤</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ui-bottom">
+                <div id="battleHUD" class="battle-hud">
+                    <div class="player-status">
+                        <div class="status-bar">
+                            <h4 id="battlePlayerName">Ty</h4>
+                            <div class="battle-hp-bar">
+                                <div id="battlePlayerHp" class="battle-hp-fill"></div>
+                            </div>
+                            <span id="battlePlayerHpText">100/100</span>
+                        </div>
+                    </div>
+
+                    <div class="skill-bar">
+                        <button id="skillBtn1" class="skill-btn skill-1 attack-btn">
+                            <div class="skill-icon" id="skill1Icon">⚔</div>
+                            <div class="skill-name" id="skill1Name">Atak</div>
+                            <div class="skill-cd" id="skillCD1">GOTÓW</div>
+                        </button>
+                        <button id="skillBtn2" class="skill-btn skill-2">
+                            <div class="skill-icon" id="skill2Icon">🔥</div>
+                            <div class="skill-name" id="skill2Name">Kula Ognia</div>
+                            <div class="skill-cd" id="skillCD2">GOTÓW</div>
+                        </button>
+                        <button id="skillBtn3" class="skill-btn skill-3">
+                            <div class="skill-icon" id="skill3Icon">🛡</div>
+                            <div class="skill-name" id="skill3Name">Obrona</div>
+                            <div class="skill-cd" id="skillCD3">GOTÓW</div>
+                        </button>
+                    </div>
+
+                    <div class="enemy-status">
+                        <div class="status-bar">
+                            <h4 id="battleEnemyName">Brak wroga</h4>
+                            <div class="battle-hp-bar">
+                                <div id="battleEnemyHp" class="battle-hp-fill"></div>
+                            </div>
+                            <span id="battleEnemyHpText">--/--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="hudToggleBtn" class="hud-toggle">📊 HUD</button>
+        </div>
+
+        <!-- INVENTORY WINDOW (Torba) -->
+        <div id="inventoryWindow" class="inventory-panel">
+            <div class="panel-header">
+                <div class="inventory-title">🎒 Torba</div>
+                <button id="closeInventoryBtn" class="close-btn">✕</button>
+            </div>
+            <div id="inventoryGrid" class="inventory-grid"></div>
+        </div>
+
+        <!-- EQUIPMENT WINDOW (Ekwipunek) -->
+        <!-- EQUIPMENT WINDOW (Ekwipunek) - klawisz C -->
+        <div id="equipmentPanel" class="equipment-panel">
+            <div class="equipment-header">
+                <div class="equipment-title">🛡️ Ekwipunek</div>
+                <button id="closeEquipmentPanel" class="close-btn">✕</button>
+            </div>
+
+            <div class="equipment-body">
+                <!-- GÓRA: Sloty + Postać -->
+                <div class="equipment-slots-area">
+                    <!-- Lewa kolumna: 3 sloty w pionie (broń, tarcza, hełm) -->
+                    <div class="eq-column eq-left">
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotWeapon" data-slot="weapon" title="Broń">⚔️</div>
+                        </div>
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotShield" data-slot="shield" title="Tarcza">🛡️</div>
+                        </div>
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotHelmet" data-slot="helmet" title="Hełm">⛑</div>
+                        </div>
+                    </div>
+
+                    <!-- Środek: Postać + sloty (amulet na górze, buty na dole) -->
+                    <div class="eq-column eq-center">
+                        <div class="eq-slot-wrapper eq-top">
+                            <div class="eq-slot" id="slotNecklace" data-slot="necklace" title="Amulet">🔮</div>
+                        </div>
+                        <div class="character-model" id="eqCharacter">
+                            <div class="character-body">
+                                <div class="char-head"></div>
+                                <div class="char-torso"></div>
+                                <div class="char-left-arm"></div>
+                                <div class="char-right-arm"></div>
+                                <div class="char-left-leg"></div>
+                                <div class="char-right-leg"></div>
+                            </div>
+                        </div>
+                        <div class="eq-slot-wrapper eq-bottom">
+                            <div class="eq-slot" id="slotBoots" data-slot="boots" title="Buty">🥾</div>
+                        </div>
+                    </div>
+
+                    <!-- Prawa kolumna: 2 sloty w pionie (pierścień, rękawice) -->
+                    <div class="eq-column eq-right">
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotRing" data-slot="ring" title="Pierścień">💍</div>
+                        </div>
+                        <div class="eq-slot-wrapper">
+                            <div class="eq-slot" id="slotGloves" data-slot="gloves" title="Rękawice">🧤</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DÓŁ: Panel Statów -->
+                <div class="equipment-stats-panel">
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">ATK:</span>
+                        <span class="eq-stat-value" id="eqStatATK">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">DEF:</span>
+                        <span class="eq-stat-value" id="eqStatDEF">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">STR:</span>
+                        <span class="eq-stat-value" id="eqStatSTR">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">INT:</span>
+                        <span class="eq-stat-value" id="eqStatINT">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">ZRN:</span>
+                        <span class="eq-stat-value" id="eqStatZRN">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">VIT:</span>
+                        <span class="eq-stat-value" id="eqStatVIT">0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label">HP:</span>
+                        <span class="eq-stat-value" id="eqStatHP">0/0</span>
+                    </div>
+                    <div class="eq-stat-row">
+                        <span class="eq-stat-label" id="eqSpecialLabel">CRIT:</span>
+                        <span class="eq-stat-value" id="eqSpecialValue">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ranking Modal -->
+        <div id="rankingModal" class="ranking-modal hidden">
+            <div class="ranking-container">
+                <div class="ranking-header">
+                    <h2>🏆 Ranking Graczy</h2>
+                    <button class="ranking-close" id="closeRanking">✕</button>
+                </div>
+                <div id="rankingList" class="ranking-list">
+                    <div class="ranking-loading">Ładowanie rankingu...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Context Menu (prawy przycisk na graczu) -->
+        <div id="playerContextMenu" class="context-menu hidden">
+            <div class="context-menu-header">
+                <span id="contextPlayerName">Gracz</span>
+            </div>
+            <button class="context-menu-item" id="contextInviteParty">
+                <span class="context-icon">👥</span>
+                Zaproś do Party
+            </button>
+            <button class="context-menu-item" id="contextTrade">
+                <span class="context-icon">💰</span>
+                Zaproś do Handlu
+            </button>
+            <button class="context-menu-item" id="contextAddFriend">
+                <span class="context-icon">⭐</span>
+                Dodaj do Znajomych
+            </button>
+            <button class="context-menu-item" id="contextWhisper">
+                <span class="context-icon">💬</span>
+                Wyślij Wiadomość
+            </button>
+        </div>
+
+        <!-- Party Panel -->
+        <div id="partyPanel" class="party-panel hidden">
+            <div class="party-header">
+                <h3>👥 Grupa</h3>
+                <button class="party-close" id="closeParty">✕</button>
+            </div>
+            <div id="partyMembers" class="party-members">
+                <div class="party-empty">Nie jesteś w grupie</div>
+            </div>
+            <button id="leaveParty" class="party-leave-btn hidden">Opuść Grupę</button>
+        </div>
+
+        <!-- Trade Window -->
+        <div id="tradeWindow" class="trade-window hidden">
+            <div class="trade-header">
+                <h3>💰 Handel z: <span id="tradePartnerName">Gracz</span></h3>
+                <button class="trade-close" id="closeTrade">✕</button>
+            </div>
+            <div class="trade-container">
+                <div class="trade-side">
+                    <h4>Twoje przedmioty</h4>
+                    <div id="tradeYourItems" class="trade-items"></div>
+                    <div class="trade-gold">
+                        <label>Gold: <input type="number" id="tradeYourGold" min="0" value="0"></label>
+                    </div>
+                    <button id="tradeAccept" class="trade-btn">Zaakceptuj</button>
+                </div>
+                <div class="trade-side">
+                    <h4>Przedmioty <span id="tradePartnerName2">gracza</span></h4>
+                    <div id="tradePartnerItems" class="trade-items"></div>
+                    <div class="trade-gold">
+                        <span>Gold: <span id="tradePartnerGold">0</span></span>
+                    </div>
+                    <div id="tradePartnerStatus"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <!-- Selected Player HUD -->
+    <div id="selectedPlayerHud" class="selected-player-hud hidden">
+        <span id="selectedPlayerName">Brak</span>
+        <button id="clearSelectedPlayer" class="selected-player-clear" title="Odznacz">✕</button>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen hidden">
+        <div class="loading-box">
+            <div class="loading-title">Wczytywanie gry...</div>
+            <div class="loading-bar"><div id="loadingBarFill" class="loading-bar-fill"></div></div>
+            <div class="loading-sub">Proszę czekać</div>
+        </div>
+    </div>
+
+    <!-- Character Select Modal -->
+    <div id="charModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Wybierz postać</h3>
+            <div id="charSlots" class="char-slots"></div>
+            <div style="margin-top:10px; font-size:0.85rem; color:#ddd;">Autosave co 15s. Możesz tworzyć/usunąć do 3 postaci.</div>
+            <div class="modal-buttons">
+                <button id="modalCloseChar" class="modal-btn">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quest Modal -->
+    <div id="questModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="modalTitle">Misja</h3>
+            <p id="modalDesc">Opis misji...</p>
+            <div id="modalRewards" class="modal-rewards">EXP: <span id="modalExp">0</span> &nbsp; Gold: <span id="modalGold">0</span></div>
+            <div class="modal-buttons">
+                <button id="modalAccept" class="modal-btn">Akceptuj (A)</button>
+                <button id="modalReject" class="modal-btn">Odrzuć</button>
+                <button id="modalClaim" class="modal-btn">Odbierz</button>
+                <button id="modalClose" class="modal-btn">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dialogue Modal -->
+    <div id="dialogueModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="dialogueNPCName">NPC</h3>
+            <p id="dialogueText">Dialog...</p>
+            <div class="modal-buttons">
+                <button id="dialogueContinue" class="modal-btn">Dalej →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Menu (ESC) -->
+    <div id="pauseMenu" class="modal hidden">
+        <div class="modal-content">
+            <h3>Menu Pauzy</h3>
+            <div class="pause-buttons">
+                <button id="pauseResume" class="modal-btn">Wznów grę (ESC)</button>
+                <button id="pauseSelectChar" class="modal-btn">Wybierz postać</button>
+                <button id="pauseLogout" class="modal-btn">Wyloguj</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invitation Modal (Party/Trade/Friends) -->
+    <div id="invitationModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="invitationTitle">Zaproszenie</h3>
+            <p id="invitationMessage">Gracz zaprasza Cię...</p>
+            <div class="modal-buttons">
+                <button id="invitationAccept" class="modal-btn accent-btn">✅ Akceptuj</button>
+                <button id="invitationReject" class="modal-btn">❌ Odrzuć</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <script src="autosave.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

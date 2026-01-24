@@ -1,0 +1,219 @@
+/* QUICK FIX - UI Layout Repair */
+
+/* Ranking Button - zmiana z left: 1220px na top positioning w prawym górnym rogu */
+.ranking-btn {
+    position: absolute !important;
+    top: 20px !important;
+    right: 90px !important;
+    left: auto !important;
+    width: 70px !important;
+    height: 70px !important;
+    font-size: 40px !important;
+    background: rgba(212, 175, 55, 0.15) !important;
+    border: 3px solid var(--bg-gold) !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    z-index: 100 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4) !important;
+    padding: 0 !important;
+}
+
+.ranking-btn:hover {
+    background: rgba(212, 175, 55, 0.3) !important;
+    transform: scale(1.15) !important;
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6) !important;
+}
+
+/* Quest Panel - adjust top to avoid collision with ranking button */
+.quest-panel {
+    position: absolute !important;
+    top: 100px !important;
+    right: 20px !important;
+    width: 280px !important;
+    max-height: 350px !important;
+    background: linear-gradient(135deg, rgba(18, 14, 24, 0.94) 0%, rgba(8, 8, 12, 0.96) 100%) !important;
+    border: 3px solid var(--bg-gold) !important;
+    border-radius: 10px !important;
+    padding: 15px !important;
+    z-index: 100 !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(212, 175, 55, 0.15) !important;
+    font-family: 'Manrope', 'Segoe UI', sans-serif !important;
+    overflow-y: auto !important;
+}
+
+/* Game Canvas - z-index 0 tak aby HUD był wyżej */
+#gameCanvas {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    z-index: 0 !important;
+}
+
+/* HUD - absolute positioning inside gameContainer */
+.hud {
+    position: absolute !important;
+    top: 20px !important;
+    left: 20px !important;
+    background: linear-gradient(135deg, rgba(18, 16, 24, 0.9) 0%, rgba(10, 10, 14, 0.95) 100%) !important;
+    border: 3px solid var(--bg-gold) !important;
+    padding: 20px !important;
+    border-radius: 10px !important;
+    font-size: 0.95rem !important;
+    z-index: 100 !important;
+    box-shadow: 0 0 35px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(212, 175, 55, 0.08) !important;
+    width: 270px !important;
+    font-family: 'Manrope', 'Segoe UI', sans-serif !important;
+}
+
+/* Minimap - absolute positioning */
+#minimap {
+    position: absolute !important;
+    top: 20px !important;
+    left: 20px !important;
+    width: 150px !important;
+    height: 150px !important;
+    background: radial-gradient(circle at 50% 40%, rgba(79, 195, 247, 0.08), transparent 55%), rgba(6, 8, 12, 0.88) !important;
+    border: 2px solid var(--bg-copper) !important;
+    border-radius: 8px !important;
+    z-index: 100 !important;
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Game Time - absolute positioning */
+#gameTime {
+    position: absolute !important;
+    top: 180px !important;
+    left: 20px !important;
+    width: 150px !important;
+    padding: 8px !important;
+    background: rgba(6, 8, 12, 0.95) !important;
+    border: 2px solid var(--bg-gold) !important;
+    border-radius: 6px !important;
+    text-align: center !important;
+    font-size: 18px !important;
+    font-weight: bold !important;
+    color: var(--bg-gold) !important;
+    font-family: 'Courier New', monospace !important;
+    z-index: 100 !important;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+}
+
+/* Battle HUD - absolute positioning at bottom */
+.battle-hud {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 150px !important;
+    background: linear-gradient(180deg, rgba(10, 10, 16, 0.96) 0%, rgba(6, 6, 10, 0.98) 100%) !important;
+    border-top: 4px solid var(--bg-copper) !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 15px 40px !important;
+    z-index: 100 !important;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(212, 175, 55, 0.1) !important;
+    font-family: 'Manrope', 'Segoe UI', sans-serif !important;
+}
+
+/* Chat Panel - absolute positioning at right bottom */
+.chat-panel {
+    position: absolute !important;
+    right: 20px !important;
+    bottom: 170px !important;
+    width: 320px !important;
+    height: 280px !important;
+    background: linear-gradient(180deg, rgba(20, 16, 12, 0.95), rgba(12, 10, 8, 0.98)) !important;
+    border: 2px solid var(--bg-gold) !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6) !important;
+    z-index: 100 !important;
+}
+
+/* HUD Toggle Button - absolute positioning */
+#hudToggleBtn {
+    position: absolute !important;
+    bottom: 20px !important;
+    left: 20px !important;
+    background: linear-gradient(135deg, #ff9f3f, #ff6633) !important;
+    color: #0f0905 !important;
+    border: 2px solid var(--bg-gold) !important;
+    padding: 10px 15px !important;
+    border-radius: 5px !important;
+    cursor: pointer !important;
+    font-weight: bold !important;
+    z-index: 100 !important;
+    font-size: 0.85rem !important;
+    transition: all 0.2s !important;
+}
+
+#hudToggleBtn:hover {
+    background: linear-gradient(135deg, #ffb463, #ff7a4d) !important;
+    box-shadow: 0 10px 22px rgba(255, 153, 102, 0.45) !important;
+}
+
+/* Modal Okna - fixed positioning nad wszystkim */
+.inventory-panel,
+.equipment-panel {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 1000 !important;
+}
+
+.inventory-panel {
+    width: 280px !important;
+}
+
+.equipment-panel {
+    width: 430px !important;
+    height: 480px !important;
+}
+
+/* Context Menu - fixed positioning above modals */
+.context-menu {
+    position: fixed !important;
+    z-index: 2000 !important;
+}
+
+/* Ranking Modal - fixed overlay */
+.ranking-modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 1000 !important;
+}
+
+/* Main Modals - fixed positioning */
+.modal {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 2000 !important;
+}
+
+/* Friends Panel - absolute inside gameContainer */
+#friendsPanel {
+    position: absolute !important;
+    top: 200px !important;
+    left: 20px !important;
+    z-index: 100 !important;
+}
+
+/* Selected Player HUD - absolute inside gameContainer */
+.selected-player-hud {
+    position: absolute !important;
+    top: 70px !important;
+    right: 20px !important;
+    z-index: 10001 !important;
+}

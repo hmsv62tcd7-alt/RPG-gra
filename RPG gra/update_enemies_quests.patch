@@ -1,0 +1,299 @@
+--- game.js
++++ game.js
+@@ -464,7 +464,7 @@
+         this.requiredLevel = requiredLevel;
+         this.expReward = expReward;
+         this.goldReward = goldReward;
+-        this.mobType = mobType; // 'boar', 'wolf', 'bear', 'whelp', 'wasp', 'snake'
++        this.mobType = mobType; // 'boar', 'wolf', 'bear', 'whelp', 'wasp', 'snake', 'spider', 'bandit', 'golem'
+         this.mobCount = mobCount;
+         this.rewardItem = rewardItem; // Item to drop
+         this.completed = false;
+@@ -897,7 +897,7 @@
+         this.width = CONFIG.ENEMY_SIZE;
+         this.height = CONFIG.ENEMY_SIZE;
+         this.name = name;
+-        this.type = type; // 'boar', 'wolf', 'bear', 'whelp', 'wasp', 'snake'
++        this.type = type; // 'boar', 'wolf', 'bear', 'whelp', 'wasp', 'snake', 'spider', 'bandit', 'golem'
+         this.difficulty = 'easy'; // 'easy', 'medium', 'hard' - domyślnie łatwy
+         this.isAggro = false;
+         this.isAlive = true;
+@@ -920,7 +920,10 @@
+             'bear': { maxHp: 80, damage: 12, defense: 4, range: 130 },
+             'whelp': { maxHp: 25, damage: 4, defense: 1, range: 100 },
+             'wasp': { maxHp: 20, damage: 5, defense: 0, range: 180 },
+-            'snake': { maxHp: 35, damage: 7, defense: 1, range: 110 }
++            'snake': { maxHp: 35, damage: 7, defense: 1, range: 110  },
++            'spider': { maxHp: 28, damage: 5, defense: 1, range: 120 },
++            'bandit': { maxHp: 55, damage: 10, defense: 3, range: 140 },
++            'golem': { maxHp: 120, damage: 16, defense: 6, range: 130 }
+         };
+         
+         const baseStat = baseStats[this.type] || baseStats['boar'];
+@@ -2385,16 +2388,16 @@
+         if (race === 'Human') {
+             // Ludzie: Kravis (misje 0-2), Mira (misje 3-5), Olaf (misje 6-9)
+             this.npcs = [
+-                new NPC(300, 300, "Kravis Żelazny", [0, 1, 2], 'quest', "Witaj wojowniku! Mam dla ciebie misje dla młodych!"),
+-                new NPC(500, 350, "Mira Handlarka", [3, 4, 5], 'quest', "Cześć przyjacielu! Mam dla ciebie interesujące zadania!"),
+-                new NPC(400, 500, "Olaf Łowca", [6, 7, 8, 9], 'quest', "Aha! Silny wyglądzisz. Mam dla ciebie niebezpieczne misje!")
++                new NPC(300, 300, "Kravis Żelazny", [0, 1, 2, 10, 11], 'quest', "Witaj wojowniku! Mam dla ciebie misje dla młodych!"),
++                new NPC(500, 350, "Mira Handlarka", [3, 4, 5, 12, 13], 'quest', "Cześć przyjacielu! Mam dla ciebie interesujące zadania!"),
++                new NPC(400, 500, "Olaf Łowca", [6, 7, 8, 9, 14, 15, 16, 17], 'quest', "Aha! Silny wyglądzisz. Mam dla ciebie niebezpieczne misje!")
+             ];
+         } else {
+             // Orki: Grok (misje 0-2), Urga (misje 3-5), Drog (misje 6-9)
+             this.npcs = [
+-                new NPC(300, 300, "Grok Zwycięzca", [0, 1, 2], 'quest', "Witaj, młody wojowniku! Zacznij od tych zadań!"),
+-                new NPC(500, 350, "Urga Szamanka", [3, 4, 5], 'quest', "Magia i bestie czekają! Czy jesteś gotów?"),
+-                new NPC(400, 500, "Drog Myśliwy", [6, 7, 8, 9], 'quest', "Wielkie bestie czekają na mocnych wojowników!")
++                new NPC(300, 300, "Grok Zwycięzca", [0, 1, 2, 10, 11], 'quest', "Witaj, młody wojowniku! Zacznij od tych zadań!"),
++                new NPC(500, 350, "Urga Szamanka", [3, 4, 5, 12, 13], 'quest', "Magia i bestie czekają! Czy jesteś gotów?"),
++                new NPC(400, 500, "Drog Myśliwy", [6, 7, 8, 9, 14, 15, 16, 17], 'quest', "Wielkie bestie czekają na mocnych wojowników!")
+             ];
+         }
+ 
+@@ -2495,6 +2498,22 @@
+             new Quest(7, "Wielkie Polowanie", "Zabij 5 Wilków i 3 Niedźwiedzie", 8, 400, 380, "wolf", 5, new Item("Futro Wspaniałe", "👑", "drop", 7)),
+             new Quest(8, "Mistrz Zwierołowu", "Zabij 10 różnych stworzeń", 9, 500, 450, "boar", 10, new Item("Medal Myśliwego", "🏅", "drop", 8)),
+             new Quest(9, "Zagrożenie Lasu", "Zabij wszystkie groźne bestie (5 Niedźwiedzi, 10 Wilków)", 10, 700, 600, "bear", 15, new Item("Klucz Skarbu", "🔑", "drop", 9))
++
++            ,
++            // ===== NOWE MISJE (żeby było co robić i żeby pasowało do nowych mobów) =====
++            // LEVEL 1-3
++            new Quest(10, "Pajęcza Plaga", "Zabij 6 Pająków", 1, 70, 50, "spider", 6, new Item("Pajęczyna", "🕸", "drop", 10)),
++            new Quest(11, "Bandyci na szlaku", "Zabij 4 Bandytów", 3, 140, 120, "bandit", 4, new Item("Sakwa Bandyty", "💰", "drop", 11)),
++
++            // LEVEL 4-6
++            new Quest(12, "Leśne Pająki", "Zabij 10 Pająków", 4, 190, 170, "spider", 10, new Item("Kokon", "🕸", "drop", 12)),
++            new Quest(13, "Rozbójnicy", "Zabij 8 Bandytów", 6, 260, 240, "bandit", 8, new Item("Sakwa Bandyty", "💰", "drop", 13)),
++
++            // LEVEL 7-10
++            new Quest(14, "Kamienny Strażnik", "Zabij 2 Golemy", 7, 420, 360, "golem", 2, new Item("Odłamek Rdzenia", "💎", "drop", 14)),
++            new Quest(15, "Golemy w głębi", "Zabij 4 Golemy", 8, 520, 460, "golem", 4, new Item("Odłamek Rdzenia", "💎", "drop", 15)),
++            new Quest(16, "Elita Rozbójników", "Zabij 12 Bandytów", 9, 650, 560, "bandit", 12, new Item("Trofeum Elity", "🏆", "drop", 16)),
++            new Quest(17, "Król Pająków", "Zabij 18 Pająków", 10, 820, 700, "spider", 18, new Item("Medal Legendy", "🏅", "drop", 17))
+         ];
+     }
+ 
+@@ -2624,84 +2643,156 @@
+     }
+ 
+     generateEnemies() {
+-        // Generuj 25 potworów na całej mapie z podziałem na strefy trudności
++        // Generuj dużo więcej potworów (klastry) z podziałem na strefy trudności
++        // Cel: mapa ma być "pełna" i minimapa bardziej czerwona
+         this.enemies = [];
++
+         const enemyNames = {
+             'boar': ['Dzik', 'Dzik Leśny', 'Śnieżny Dzik'],
+             'wolf': ['Wilk', 'Wilk Szary', 'Wilk Alfa'],
+             'bear': ['Niedźwiedź', 'Niedźwiedź Brunatny', 'Niedźwiedź Górski'],
+             'whelp': ['Wilczek', 'Małe Szczenię', 'Szczenię Wilka'],
+             'wasp': ['Osa', 'Osa Gigantyczna', 'Osa Warjatka'],
+-            'snake': ['Wąż', 'Wąż Żmija', 'Wąż Wędrujący']
++            'snake': ['Wąż', 'Wąż Żmija', 'Wąż Wędrujący'],
++            'spider': ['Pająk', 'Pająk Leśny', 'Pająk Cień'],
++            'bandit': ['Bandyta', 'Rozbójnik', 'Rabuś'],
++            'golem': ['Golem', 'Kamienny Golem', 'Strażnik Rdzenia']
+         };
+-        
+-        // STREFA 1: OBÓZ (łatwa) - misje 1-3 (poziomy 1-3)
+-        // Pozycja gracza zwykle ok 2000x2000, obóz w okolicy ~1500-2500
++
++        // Pozycja obozu / startu
+         const campX = 1800, campY = 1800;
+-        const campRadius = 600; // Promień około obozu
+-        
+-        // Funkcja deterministycznego "losowania" na podstawie indeksu
++
++        // Deterministyczne "losowanie" (seed -> 0..1)
+         const seededRandom = (seed) => {
+             const x = Math.sin(seed) * 10000;
+             return x - Math.floor(x);
+         };
+-        
+-        // Dziki i Wilki dla początkujących
+-        const easyTypes = ['boar', 'whelp', 'wolf'];
+-        for (let i = 0; i < 8; i++) {
+-            const type = easyTypes[i % easyTypes.length];
+-            const angle = seededRandom(i * 100) * Math.PI * 2;
+-            const distance = seededRandom(i * 100 + 50) * campRadius;
+-            const x = campX + Math.cos(angle) * distance;
+-            const y = campY + Math.sin(angle) * distance;
+-            
+-            const typeNames = enemyNames[type];
+-            const name = typeNames[Math.floor(seededRandom(i * 100 + 25) * typeNames.length)];
+-            
+-            const enemy = new Enemy(x, y, name, type);
+-            enemy.difficulty = 'easy'; // Łatwy
++
++        const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
++
++        const pickName = (type, seed) => {
++            const typeNames = enemyNames[type] || enemyNames['boar'];
++            return typeNames[Math.floor(seededRandom(seed) * typeNames.length)];
++        };
++
++        // Tworzy wroga i dodaje do listy
++        const spawnEnemy = (x, y, type, difficulty, seed) => {
++            x = clamp(x, 50, MAP_WIDTH - 50);
++            y = clamp(y, 50, MAP_HEIGHT - 50);
++
++            const enemy = new Enemy(x, y, pickName(type, seed), type);
++            enemy.difficulty = difficulty;
++            enemy.initStats(); // przelicz staty po ustawieniu difficulty
+             this.enemies.push(enemy);
+-        }
+-        
+-        // STREFA 2: ŚREDNIOZAAWANSOWANA (1000-2500 od obozu)
+-        // Misje 4-6 (poziomy 4-6)
+-        for (let i = 0; i < 9; i++) {
+-            const types = ['snake', 'wasp', 'wolf', 'boar'];
+-            const type = types[i % types.length];
+-            
+-            // Deterministyczna pozycja dalej od obozu
+-            const x = 500 + seededRandom(i * 200 + 1000) * 2000;
+-            const y = 500 + seededRandom(i * 200 + 1500) * 2000;
+-            
+-            // Jeśli zbyt blisko obozu, przesuń
+-            const distToCamp = Math.sqrt(Math.pow(x - campX, 2) + Math.pow(y - campY, 2));
+-            if (distToCamp < campRadius + 400) continue;
+-            
+-            const typeNames = enemyNames[type];
+-            const name = typeNames[Math.floor(seededRandom(i * 200 + 2000) * typeNames.length)];
+-            
+-            const enemy = new Enemy(x, y, name, type);
+-            enemy.difficulty = 'medium'; // Średni
+-            this.enemies.push(enemy);
+-        }
+-        
+-        // STREFA 3: TRUDNA (koniec mapy 2500-4000)
+-        // Misje 7-10 (poziomy 7-10)
+-        for (let i = 0; i < 8; i++) {
+-            const types = ['bear', 'snake', 'wasp', 'wolf'];
+-            const type = types[i % types.length];
+-            
+-            // Deterministyczna pozycja na końcu mapy
+-            const x = 2500 + seededRandom(i * 300 + 3000) * 1300;
+-            const y = 2500 + seededRandom(i * 300 + 3500) * 1300;
+-            
+-            const typeNames = enemyNames[type];
+-            const name = typeNames[Math.floor(seededRandom(i * 300 + 4000) * typeNames.length)];
+-            
+-            const enemy = new Enemy(x, y, name, type);
+-            enemy.difficulty = 'hard'; // Trudny
+-            this.enemies.push(enemy);
+-        }
++        };
++
++        // Spawn w klastrach: kilka "gniazd" i moby w promieniu
++        const spawnClusters = (opts) => {
++            const {
++                seedBase,
++                clusterCount,
++                mobsMin,
++                mobsMax,
++                clusterRadius,
++                difficulty,
++                types,
++                centerPicker // (clusterIndex, seed) => {x,y}
++            } = opts;
++
++            let enemyIndex = 0;
++
++            for (let c = 0; c < clusterCount; c++) {
++                const cSeed = seedBase + c * 1000;
++                const center = centerPicker(c, cSeed);
++
++                const mobCount = mobsMin + Math.floor(seededRandom(cSeed + 77) * (mobsMax - mobsMin + 1));
++
++                for (let m = 0; m < mobCount; m++) {
++                    const s = cSeed + m * 13 + 5;
++
++                    const type = types[Math.floor(seededRandom(s + 9) * types.length)];
++                    const angle = seededRandom(s + 21) * Math.PI * 2;
++                    const dist = seededRandom(s + 33) * clusterRadius;
++
++                    const x = center.x + Math.cos(angle) * dist;
++                    const y = center.y + Math.sin(angle) * dist;
++
++                    spawnEnemy(x, y, type, difficulty, s + 999);
++                    enemyIndex++;
++                }
++            }
++        };
++
++        // ======================
++        // STREFA 1 (łatwa) - okolice obozu
++        // ======================
++        spawnClusters({
++            seedBase: 100,
++            clusterCount: 8,
++            mobsMin: 7,
++            mobsMax: 11,   // ~70-90 mobów
++            clusterRadius: 220,
++            difficulty: 'easy',
++            types: ['boar', 'whelp', 'wolf', 'spider'],
++            centerPicker: (c, seed) => {
++                const angle = seededRandom(seed + 1) * Math.PI * 2;
++                const ring = 350 + seededRandom(seed + 2) * 450; // 350..800 od obozu
++                return {
++                    x: campX + Math.cos(angle) * ring,
++                    y: campY + Math.sin(angle) * ring
++                };
++            }
++        });
++
++        // ======================
++        // STREFA 2 (średnia) - dalej od obozu
++        // ======================
++        spawnClusters({
++            seedBase: 20000,
++            clusterCount: 7,
++            mobsMin: 7,
++            mobsMax: 11,   // ~50-80 mobów
++            clusterRadius: 260,
++            difficulty: 'medium',
++            types: ['snake', 'wasp', 'wolf', 'boar', 'bandit', 'spider'],
++            centerPicker: (c, seed) => {
++                // pick w obrębie 500..3200, ale poza "bezpiecznym" obozem
++                let x = 500 + seededRandom(seed + 10) * 2700;
++                let y = 500 + seededRandom(seed + 11) * 2700;
++
++                // jeśli za blisko obozu, wypchnij na zewnątrz (bez continue)
++                const dx = x - campX;
++                const dy = y - campY;
++                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
++                const minDist = 1100; // dalej niż strefa 1
++                if (dist < minDist) {
++                    const k = (minDist / dist);
++                    x = campX + dx * k;
++                    y = campY + dy * k;
++                }
++
++                return { x, y };
++            }
++        });
++
++        // ======================
++        // STREFA 3 (trudna) - daleki róg mapy + elity
++        // ======================
++        spawnClusters({
++            seedBase: 40000,
++            clusterCount: 5,
++            mobsMin: 7,
++            mobsMax: 10,   // ~35-50 mobów
++            clusterRadius: 280,
++            difficulty: 'hard',
++            types: ['bear', 'wolf', 'snake', 'wasp', 'bandit', 'golem'],
++            centerPicker: (c, seed) => {
++                // daleki obszar 2500..(max-300)
++                const x = 2500 + seededRandom(seed + 20) * (MAP_WIDTH - 2800);
++                const y = 2500 + seededRandom(seed + 21) * (MAP_HEIGHT - 2800);
++                return { x, y };
++            }
++        });
+     }
+ 
+     generateTrees() {
