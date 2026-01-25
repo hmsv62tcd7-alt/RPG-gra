@@ -6672,63 +6672,29 @@ class Game {
 
             const processPlayersSnapshot = (usersData, sourceLabel) => {
                 const now = Date.now();
-                console.log(`[SNAPSHOT] ${sourceLabel}:`, usersData);
-                console.log(`[SNAPSHOT] ${sourceLabel} keys:`, usersData ? Object.keys(usersData) : 'null');
-                console.log(`[SNAPSHOT] myUid=${myUid}, currentUser.uid=${currentUser?.uid}`);
-
                 const hasAny = usersData && Object.keys(usersData).length > 0;
-                if (!hasAny) {
-                    console.log(`[SNAPSHOT] ${sourceLabel} is empty, keeping otherPlayers intact`);
-                    return;
-                }
-
-                console.log(`[SNAPSHOT] Processing ${sourceLabel}, current otherPlayers:`, this.otherPlayers);
+                if (!hasAny) return;
 
                 // Usuń graczy którzy się rozłączyli lub są offline
                 for (let uid in this.otherPlayers) {
                     const p = usersData[uid];
                     if (!p || uid === myUid) {
-                        console.log(`[SNAPSHOT] Removing ${uid} from otherPlayers (no data or self, myUid=${myUid})`);
                         delete this.otherPlayers[uid];
                     } else if (p.timestamp && now - p.timestamp > TIMEOUT) {
-                        console.log(`[SNAPSHOT] Removing ${uid} - offline (${now - p.timestamp}ms old)`);
                         delete this.otherPlayers[uid];
                     }
                 }
 
                 // Zaktualizuj pozostałych graczy
                 for (let uid in usersData) {
-                    if (uid === myUid) {
-                        console.log(`[SNAPSHOT] Skipping self (uid=${uid}, myUid=${myUid})`);
-                        continue;
-                    }
+                    if (uid === myUid) continue;
                     const p = usersData[uid];
-                    console.log(`[SNAPSHOT] Checking uid=${uid}, myUid=${myUid}, match=${uid === myUid}, data:`, p);
-                    
-                    if (!p) {
-                        console.log(`[SNAPSHOT] Skipping ${uid} - p is null`);
-                        continue;
-                    }
-                    if (typeof p !== 'object') {
-                        console.log(`[SNAPSHOT] Skipping ${uid} - p is not object (${typeof p})`);
-                        continue;
-                    }
-                    // FIX: Use Number.isFinite to allow x=0 or y=0 positions
-                    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
-                        console.log(`[SNAPSHOT] Skipping ${uid} - invalid x/y: ${p.x}/${p.y}`);
-                        continue;
-                    }
-                    if (p.timestamp && (now - p.timestamp) > TIMEOUT) {
-                        console.log(`[SNAPSHOT] Skipping ${uid} - stale (${now - p.timestamp}ms old)`);
-                        continue;
-                    }
-                    
+                    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+                    if (p.timestamp && (now - p.timestamp) > TIMEOUT) continue;
                     if (!Number.isFinite(p.currentMap)) p.currentMap = 1;
                     this.otherPlayers[uid] = p;
-                    console.log(`[SNAPSHOT] ✓ Added ${uid} from ${sourceLabel}:`, p);
+                    console.log(`[Multiplayer] ✓ Added from ${sourceLabel}:`, uid);
                 }
-
-                console.log(`[SNAPSHOT] Final otherPlayers:`, this.otherPlayers);
             };
 
             // Listener per-map (gameState/mapX/players) — najwyższy priorytet, bo mapy już czytasz dla enemies
@@ -7775,6 +7741,16 @@ function handleRegister() {
         .then(userCredential => {
             console.log('[Auth] Register success:', userCredential.user.email);
             errorEl.textContent = '';
+            
+            // Wyślij email potwierdzenia
+            userCredential.user.sendEmailVerification().then(() => {
+                console.log('[Auth] Verification email sent to:', email);
+                errorEl.textContent = 'Konto utworzone! Sprawdź email w celu potwierdzenia.';
+                errorEl.style.color = '#00ff00';
+            }).catch(err => {
+                console.error('[Auth] Error sending verification email:', err);
+            });
+            
             document.getElementById('registerEmail').value = '';
             document.getElementById('registerPassword').value = '';
             document.getElementById('registerPassword2').value = '';
