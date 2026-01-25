@@ -259,9 +259,6 @@ class Player {
         this.x = x;
         this.y = y;
         this.width = CONFIG.PLAYER_SIZE;
-        this.height = CONFIG.PLAYER_SIZE;
-        this.speed = CONFIG.PLAYER_SPEED;
-        
         // Klasa i level
         this.classType = classType;
         this.level = level;
@@ -275,10 +272,6 @@ class Player {
         this.exp = 0;
         this.maxExp = 80; // balans: wolniejszy progres, ale exp też leci z mobów
         
-        this.velocityX = 0;
-        this.velocityY = 0;
-        
-        // Inventory
         this.inventory = new Inventory(20);
         
         // Equipment
@@ -3984,10 +3977,6 @@ class Game {
         });
         
         // Update stats in equipment panel
-        document.getElementById('eqATK').textContent = this.player.equipmentATK;
-        document.getElementById('eqDEF').textContent = this.player.equipmentDEF;
-        
-        // Update stats in equipment panel
         this.updateEquipmentStatsUI();
         
         // Update shop display
@@ -3997,19 +3986,18 @@ class Game {
     updateEquipmentStatsUI() {
         // Zaktualizuj wszystkie staty w panelu ekwipunku
         const stats = this.player.stats;
-        const eqAtkEl = document.getElementById('eqATK');
-        const eqDefEl = document.getElementById('eqDEF');
-        const eqStrEl = document.getElementById('eqSTR');
-        const eqIntEl = document.getElementById('eqINT');
-        const eqZrnEl = document.getElementById('eqZRN');
-        const eqVitEl = document.getElementById('eqVIT');
-        const eqHpEl = document.getElementById('eqHP');
+        // Nowe ID z equipment panelu (eqStat*)
+        const eqAtkEl = document.getElementById('eqStatATK');
+        const eqDefEl = document.getElementById('eqStatDEF');
+        const eqStrEl = document.getElementById('eqStatSTR');
+        const eqIntEl = document.getElementById('eqStatINT');
+        const eqZrnEl = document.getElementById('eqStatZRN');
+        const eqVitEl = document.getElementById('eqStatVIT');
+        const eqHpEl = document.getElementById('eqStatHP');
         const eqSpecialLabelEl = document.getElementById('eqSpecialLabel');
-        const eqSpecialEl = document.getElementById('eqSpecial');
+        const eqSpecialEl = document.getElementById('eqSpecialValue');
         
-        // Oblicz ATK i DEF na podstawie statów
-        // ATK = STR * 2 + INT * 1 + ZRN * 1 + bonusy ekwipunku
-        // DEF = VIT * 1 + STR * 1 + bonusy ekwipunku
+        // Oblicz ATK i DEF na podstawie statów (bazowych + eq bonusy)
         const atk = stats.str * 2 + stats.int * 1 + stats.zrn * 1 + this.player.equipmentATK;
         const def = stats.vit * 1 + stats.str * 1 + this.player.equipmentDEF;
         
