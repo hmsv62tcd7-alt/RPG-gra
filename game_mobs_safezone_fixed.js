@@ -6671,6 +6671,12 @@ class Game {
                 const now = Date.now();
                 console.log(`[Multiplayer] Received ${sourceLabel}:`, usersData);
 
+                const hasAny = usersData && Object.keys(usersData).length > 0;
+                if (!hasAny) {
+                    console.log(`[Multiplayer] ${sourceLabel} is empty, keeping previous otherPlayers until fallback updates`);
+                    return;
+                }
+
                 // Usuń graczy którzy się rozłączyli lub są offline
                 for (let uid in this.otherPlayers) {
                     const entry = usersData[uid];
@@ -6697,6 +6703,9 @@ class Game {
                     this.otherPlayers[uid] = p;
                     console.log('[Multiplayer] Updated player:', uid, p);
                 }
+
+                const visibleKeys = Object.keys(this.otherPlayers).filter(id => id !== currentUser?.uid);
+                console.log('[Multiplayer] Visible otherPlayers after', sourceLabel, ':', visibleKeys);
             };
 
             // Listener per-map (gameState/mapX/players) — najwyższy priorytet, bo mapy już czytasz dla enemies
