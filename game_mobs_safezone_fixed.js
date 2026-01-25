@@ -2664,7 +2664,8 @@ class Game {
         // 10 misji dla każdego poziomu 1-10 z skalowanymi nagrodami
         this.quests = [
             // LEVEL 1-3 (ŁATWO - wokół obozu)
-            new Quest(0, "Małe Dziki", "Zbierz 3x Mięso Dzika", 1, 60, 40, "whelp", 3, new Item("Mięso Dzika", "🥩", "drop", 0)),
+            // Mięso Dzika dropi z Dzików (boar), nie z Wilczków
+            new Quest(0, "Małe Dziki", "Zbierz 3x Mięso Dzika od Dzików", 1, 60, 40, "boar", 3, new Item("Mięso Dzika", "🥩", "drop", 0)),
             new Quest(1, "Łowy Wilczków", "Zabij 4 Wilczków", 2, 85, 65, "whelp", 4, new Item("Pazury Wilczka", "🐾", "drop", 1)),
             new Quest(2, "Polowanie na Dziki", "Zabij 5 Dzików", 3, 120, 100, "boar", 5, new Item("Mięso Dzika", "🥩", "drop", 2)),
             
@@ -3556,6 +3557,9 @@ class Game {
             const removed = this.player.inventory.removeByQuestId(questId, quest.mobCount || Infinity);
             console.log(`Usunięto ${removed} przedmiotów związanych z misją ${questId}`);
             
+            // Usuń ukończoną misję z activeQuests
+            this.activeQuests = this.activeQuests.filter(q => q.id !== questId);
+            
             console.log(`Nagrodę odebrałeś! +${quest.expReward} EXP, +${quest.goldReward} Gold`);
             this.updateQuestPanel();
             this.updateInventoryDisplay();
@@ -3583,6 +3587,7 @@ class Game {
             if (!this.activeQuests.some(aq => aq.id === questId)) {
                 this.activeQuests.push(quest);
                 console.log(`Zaakceptowałeś misję: ${quest.name}`);
+                console.log(`[Quest Debug] Added quest #${quest.id} with mobType="${quest.mobType}", mobCount=${quest.mobCount}`);
                 this.updateQuestPanel();
             }
         }
@@ -3683,6 +3688,9 @@ class Game {
     updateQuestProgress(defeatedEnemy) {
         if (!defeatedEnemy) return;
         
+        console.log(`[Quest Debug] Enemy defeated - type: ${defeatedEnemy.type}, name: ${defeatedEnemy.name}`);
+        console.log(`[Quest Debug] Active quests count: ${this.activeQuests.length}`);
+        
         // Mapuj typ potwora do dropa
         const dropItems = {
             'boar': new Item("Mięso Dzika", "🥩", 'drop', null, 1),
@@ -3698,9 +3706,14 @@ class Game {
         
         // Zliczaj postęp dla aktywnych misji
         for (let quest of this.activeQuests) {
+            console.log(`[Quest Debug] Checking quest #${quest.id} "${quest.name}" - mobType: ${quest.mobType}, completed: ${quest.completed}, progress: ${quest.progress}/${quest.mobCount}`);
             if (quest.completed) continue;
-            if (quest.mobType !== defeatedEnemy.type) continue;
+            if (quest.mobType !== defeatedEnemy.type) {
+                console.log(`[Quest Debug] -> Mob type mismatch: quest.mobType="${quest.mobType}" vs defeatedEnemy.type="${defeatedEnemy.type}"`);
+                continue;
+            }
             
+            console.log(`[Quest Debug] -> MATCH! Processing quest #${quest.id}`);
             // Dropuj item z potwora
             const dropItem = dropItems[defeatedEnemy.type];
             if (dropItem) {
@@ -4364,16 +4377,19 @@ class Game {
         
         questList.innerHTML = '';
         
-        if (this.activeQuests.length === 0) {
+        // Pokaż tylko niezakończone lub zakończone ale nieodebrane misje
+        const visibleQuests = this.activeQuests.filter(q => !q.rewardClaimed);
+        
+        if (visibleQuests.length === 0) {
             questList.innerHTML = '<div style="color: #888; text-align: center; padding: 10px;">Brak aktywnych misji</div>';
             return;
         }
 
-        for (let quest of this.activeQuests) {
+        for (let quest of visibleQuests) {
             const questItem = document.createElement('div');
             questItem.className = `quest-item ${quest.completed ? 'completed' : ''}`;
             
-            const progressText = quest.completed ? '✓ Ukończona' : `${quest.progress}/${quest.mobCount}`;
+            const progressText = quest.completed ? '✓ Ukończona - Odbierz nagrodę!' : `${quest.progress}/${quest.mobCount}`;
             
             questItem.innerHTML = `
                 <div class="quest-name">${quest.name}</div>
