@@ -259,6 +259,12 @@ class Player {
         this.x = x;
         this.y = y;
         this.width = CONFIG.PLAYER_SIZE;
+        this.height = CONFIG.PLAYER_SIZE;
+        this.speed = CONFIG.PLAYER_SPEED;
+        
+        this.velocityX = 0;
+        this.velocityY = 0;
+        
         // Klasa i level
         this.classType = classType;
         this.level = level;
