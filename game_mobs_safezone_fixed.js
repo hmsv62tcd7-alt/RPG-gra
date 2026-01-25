@@ -6669,41 +6669,61 @@ class Game {
 
             const processPlayersSnapshot = (usersData, sourceLabel) => {
                 const now = Date.now();
-                console.log(`[Multiplayer] Received ${sourceLabel}:`, usersData);
+                console.log(`[SNAPSHOT] ${sourceLabel}:`, usersData);
+                console.log(`[SNAPSHOT] ${sourceLabel} keys:`, usersData ? Object.keys(usersData) : 'null');
 
                 const hasAny = usersData && Object.keys(usersData).length > 0;
                 if (!hasAny) {
-                    console.log(`[Multiplayer] ${sourceLabel} is empty, keeping previous otherPlayers until fallback updates`);
+                    console.log(`[SNAPSHOT] ${sourceLabel} is empty, keeping otherPlayers intact`);
                     return;
                 }
+
+                console.log(`[SNAPSHOT] Processing ${sourceLabel}, current otherPlayers:`, this.otherPlayers);
 
                 // Usuń graczy którzy się rozłączyli lub są offline
                 for (let uid in this.otherPlayers) {
                     const p = usersData[uid];
                     if (!p || uid === currentUser.uid) {
+                        console.log(`[SNAPSHOT] Removing ${uid} from otherPlayers (no data or self)`);
                         delete this.otherPlayers[uid];
                     } else if (p.timestamp && now - p.timestamp > TIMEOUT) {
+                        console.log(`[SNAPSHOT] Removing ${uid} - offline (${now - p.timestamp}ms old)`);
                         delete this.otherPlayers[uid];
-                        console.log('[Multiplayer] Removed offline player:', uid);
                     }
                 }
 
                 // Zaktualizuj pozostałych graczy
                 for (let uid in usersData) {
-                    if (uid === currentUser.uid) continue;
-                    const p = usersData[uid];
-                    if (!p || !p.x || !p.y) continue;
-                    if (p.timestamp && (now - p.timestamp) > TIMEOUT) {
-                        console.log('[Multiplayer] Player offline (stale timestamp):', uid);
+                    if (uid === currentUser.uid) {
+                        console.log(`[SNAPSHOT] Skipping self: ${uid}`);
                         continue;
                     }
+                    const p = usersData[uid];
+                    console.log(`[SNAPSHOT] Checking uid=${uid}, data:`, p);
+                    
+                    if (!p) {
+                        console.log(`[SNAPSHOT] Skipping ${uid} - p is null`);
+                        continue;
+                    }
+                    if (typeof p !== 'object') {
+                        console.log(`[SNAPSHOT] Skipping ${uid} - p is not object (${typeof p})`);
+                        continue;
+                    }
+                    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
+                        console.log(`[SNAPSHOT] Skipping ${uid} - invalid x/y: ${p.x}/${p.y}`);
+                        continue;
+                    }
+                    if (p.timestamp && (now - p.timestamp) > TIMEOUT) {
+                        console.log(`[SNAPSHOT] Skipping ${uid} - stale (${now - p.timestamp}ms old)`);
+                        continue;
+                    }
+                    
                     if (!Number.isFinite(p.currentMap)) p.currentMap = 1;
                     this.otherPlayers[uid] = p;
-                    console.log('[Multiplayer] Updated player:', uid, p);
+                    console.log(`[SNAPSHOT] ✓ Added ${uid} from ${sourceLabel}:`, p);
                 }
 
-                const visibleKeys = Object.keys(this.otherPlayers).filter(id => id !== currentUser?.uid);
-                console.log('[Multiplayer] Visible otherPlayers after', sourceLabel, ':', visibleKeys);
+                console.log(`[SNAPSHOT] Final otherPlayers:`, this.otherPlayers);
             };
 
             // Listener per-map (gameState/mapX/players) — najwyższy priorytet, bo mapy już czytasz dla enemies
@@ -6788,14 +6808,22 @@ class Game {
             timestamp: Date.now()
         };
         
+        console.log(`[SYNC] Writing player ${currentUser.uid} to map${this.currentMap}:`, playerData);
+        
         // Zapisz per-map (gameState/mapX/players/{uid}) — flat structure jak enemies
-        database.ref('gameState/map' + this.currentMap + '/players/' + currentUser.uid).set(playerData).catch((error) => {
-            console.error('[Multiplayer] Sync error (map players):', error);
+        const mapPath = `gameState/map${this.currentMap}/players/${currentUser.uid}`;
+        database.ref(mapPath).set(playerData).then(() => {
+            console.log(`[SYNC] ✓ Written to ${mapPath}`);
+        }).catch((error) => {
+            console.error(`[SYNC] ✗ Error ${mapPath}:`, error);
         });
         
         // Backup: playersOnline flat
-        database.ref('playersOnline/' + currentUser.uid).set(playerData).catch((error) => {
-            console.error('[Multiplayer] Sync error (playersOnline):', error);
+        const onlinePath = `playersOnline/${currentUser.uid}`;
+        database.ref(onlinePath).set(playerData).then(() => {
+            console.log(`[SYNC] ✓ Written to ${onlinePath}`);
+        }).catch((error) => {
+            console.error(`[SYNC] ✗ Error ${onlinePath}:`, error);
         });
         
         // Synchronizuj stan wrogów (serwerowy)

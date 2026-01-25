@@ -7339,14 +7339,22 @@ class Game {
             timestamp: Date.now()
         };
         
+        console.log(`[SYNC] Writing player ${currentUser.uid} to map${this.currentMap}:`, playerData);
+        
         // Zapisz per-map (gameState/mapX/players/{uid}) — flat structure jak enemies
-        database.ref('gameState/map' + this.currentMap + '/players/' + currentUser.uid).set(playerData).catch((error) => {
-            console.error('[Multiplayer] Sync error (map players):', error);
+        const mapPath = `gameState/map${this.currentMap}/players/${currentUser.uid}`;
+        database.ref(mapPath).set(playerData).then(() => {
+            console.log(`[SYNC] ✓ Written to ${mapPath}`);
+        }).catch((error) => {
+            console.error(`[SYNC] ✗ Error ${mapPath}:`, error);
         });
         
         // Backup: playersOnline flat
-        database.ref('playersOnline/' + currentUser.uid).set(playerData).catch((error) => {
-            console.error('[Multiplayer] Sync error (playersOnline):', error);
+        const onlinePath = `playersOnline/${currentUser.uid}`;
+        database.ref(onlinePath).set(playerData).then(() => {
+            console.log(`[SYNC] ✓ Written to ${onlinePath}`);
+        }).catch((error) => {
+            console.error(`[SYNC] ✗ Error ${onlinePath}:`, error);
         });
         
         // Synchronizuj stan wrogów (serwerowy)
