@@ -7218,12 +7218,20 @@ class Game {
         try {
             database.ref('users').on('value', (snapshot) => {
                 const usersData = snapshot.val() || {};
+                const now = Date.now();
+                const TIMEOUT = 30000; // 30 sekund timeout dla offline graczy
                 console.log('[Multiplayer] Received users data:', usersData);
                 
-                // Usuń graczy którzy się rozłączyli
+                // Usuń graczy którzy się rozłączyli lub są offline
                 for (let uid in this.otherPlayers) {
                     if (!usersData[uid] || uid === currentUser.uid) {
                         delete this.otherPlayers[uid];
+                    } else if (usersData[uid].player && usersData[uid].player.timestamp) {
+                        // Sprawdź czy gracz jest online (timestamp nie starszy niż TIMEOUT)
+                        if (now - usersData[uid].player.timestamp > TIMEOUT) {
+                            delete this.otherPlayers[uid];
+                            console.log('[Multiplayer] Removed offline player:', uid);
+                        }
                     }
                 }
                 
@@ -7231,6 +7239,11 @@ class Game {
                 for (let uid in usersData) {
                     if (uid !== currentUser.uid && usersData[uid].player) {
                         const p = usersData[uid].player;
+                        // Sprawdź czy gracz jest online
+                        if (p.timestamp && (now - p.timestamp) > TIMEOUT) {
+                            console.log('[Multiplayer] Player offline (stale timestamp):', uid);
+                            continue;
+                        }
                         if (!Number.isFinite(p.currentMap)) p.currentMap = 1;
                         this.otherPlayers[uid] = p;
                         console.log('[Multiplayer] Updated player:', uid, p);

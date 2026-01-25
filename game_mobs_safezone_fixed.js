@@ -1595,6 +1595,37 @@ class Game {
             console.log('[Texture] Grass texture loaded');
         };
 
+        // Załaduj obrazek drzewa
+        this.treeTexture = new Image();
+        this.treeTexture.src = 'Grafika/hrnt_pev8_210210.jpg';
+        this.treeTextureLoaded = false;
+        this.processedTreeTexture = null;
+        this.treeTexture.onload = () => {
+            const maxSize = 256;
+            const scale = Math.min(1, maxSize / Math.max(this.treeTexture.width, this.treeTexture.height));
+            
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = this.treeTexture.width * scale;
+            tempCanvas.height = this.treeTexture.height * scale;
+            tempCtx.drawImage(this.treeTexture, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+            
+            // Usuń białe tło
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] > 230 && data[i + 1] > 230 && data[i + 2] > 230) {
+                    data[i + 3] = 0;
+                }
+            }
+            
+            tempCtx.putImageData(imageData, 0, 0);
+            this.processedTreeTexture = tempCanvas;
+            this.treeTextureLoaded = true;
+            console.log('[Texture] Tree texture loaded');
+        };
+
         // Załaduj obrazek domu
         this.houseTexture = new Image();
         this.houseTexture.src = 'Grafika/5546.jpg';
@@ -4481,24 +4512,30 @@ class Game {
     }
 
     drawMapGrass() {
-        // Pikselowa baza trawy
-        this.ctx.fillStyle = '#2f6b3a';
-        this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+        if (this.grassTextureLoaded && this.grassPattern) {
+            // Użyj gotowego wzorca trawy
+            this.ctx.fillStyle = this.grassPattern;
+            this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+        } else {
+            // Pikselowa baza trawy (backup)
+            this.ctx.fillStyle = '#2f6b3a';
+            this.ctx.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
 
-        // Nałożona ziarnista tekstura (precomputed pattern)
-        for (let tile of this.mapGrassPattern) {
-            if (tile.type === 'dot') {
-                this.ctx.fillStyle = tile.color;
-                this.ctx.fillRect(tile.x, tile.y, tile.size, tile.size);
-            } else if (tile.type === 'tuft') {
-                this.ctx.strokeStyle = tile.color;
-                this.ctx.lineWidth = 1;
-                this.ctx.beginPath();
-                this.ctx.moveTo(tile.x, tile.y);
-                this.ctx.lineTo(tile.x, tile.y - tile.h);
-                this.ctx.moveTo(tile.x + 2, tile.y + 1);
-                this.ctx.lineTo(tile.x + 2 + tile.tilt, tile.y - tile.h + 2);
-                this.ctx.stroke();
+            // Nałożona ziarnista tekstura (precomputed pattern)
+            for (let tile of this.mapGrassPattern) {
+                if (tile.type === 'dot') {
+                    this.ctx.fillStyle = tile.color;
+                    this.ctx.fillRect(tile.x, tile.y, tile.size, tile.size);
+                } else if (tile.type === 'tuft') {
+                    this.ctx.strokeStyle = tile.color;
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(tile.x, tile.y);
+                    this.ctx.lineTo(tile.x, tile.y - tile.h);
+                    this.ctx.moveTo(tile.x + 2, tile.y + 1);
+                    this.ctx.lineTo(tile.x + 2 + tile.tilt, tile.y - tile.h + 2);
+                    this.ctx.stroke();
+                }
             }
         }
 
@@ -6298,8 +6335,23 @@ class Game {
         }
     }
 
-    drawLargeTree(x, y) {
-        // Pikselowo-cieniowane drzewo w stylu ref
+    drawLargeTree(x, y, scale = 1, rotation = 0) {
+        if (this.treeTextureLoaded && this.processedTreeTexture) {
+            // Użyj przetworzonego obrazka drzewa
+            const treeWidth = 80 * scale;
+            const treeHeight = 100 * scale;
+            
+            this.ctx.drawImage(
+                this.processedTreeTexture,
+                x - treeWidth / 2,
+                y - treeHeight,
+                treeWidth,
+                treeHeight
+            );
+            return;
+        }
+        
+        // Pikselowo-cieniowane drzewo w stylu ref (backup)
         const key = `tree_${Math.round(x)}_${Math.round(y)}`;
         if (!this.treeDetails[key]) {
             const seedBase = (Math.floor(x) * 73856093) ^ (Math.floor(y) * 19349663);
@@ -6615,12 +6667,20 @@ class Game {
         try {
             database.ref('users').on('value', (snapshot) => {
                 const usersData = snapshot.val() || {};
+                const now = Date.now();
+                const TIMEOUT = 30000; // 30 sekund timeout dla offline graczy
                 console.log('[Multiplayer] Received users data:', usersData);
                 
-                // Usuń graczy którzy się rozłączyli
+                // Usuń graczy którzy się rozłączyli lub są offline
                 for (let uid in this.otherPlayers) {
                     if (!usersData[uid] || uid === currentUser.uid) {
                         delete this.otherPlayers[uid];
+                    } else if (usersData[uid].player && usersData[uid].player.timestamp) {
+                        // Sprawdź czy gracz jest online (timestamp nie starszy niż TIMEOUT)
+                        if (now - usersData[uid].player.timestamp > TIMEOUT) {
+                            delete this.otherPlayers[uid];
+                            console.log('[Multiplayer] Removed offline player:', uid);
+                        }
                     }
                 }
                 
@@ -6628,6 +6688,11 @@ class Game {
                 for (let uid in usersData) {
                     if (uid !== currentUser.uid && usersData[uid].player) {
                         const p = usersData[uid].player;
+                        // Sprawdź czy gracz jest online
+                        if (p.timestamp && (now - p.timestamp) > TIMEOUT) {
+                            console.log('[Multiplayer] Player offline (stale timestamp):', uid);
+                            continue;
+                        }
                         if (!Number.isFinite(p.currentMap)) p.currentMap = 1;
                         this.otherPlayers[uid] = p;
                         console.log('[Multiplayer] Updated player:', uid, p);
