@@ -3045,7 +3045,7 @@ class Game {
 
         // Obsługa ekwipunku (klawisz C)
         if (key === 'c' || key === 'C') {
-            const eqPanel = document.getElementById('equipmentWindow');
+            const eqPanel = document.getElementById('equipmentPanel');
             if (eqPanel) {
                 const nowVisible = eqPanel.classList.toggle('visible');
                 if (nowVisible && !eqPanel.dataset.dragged) {

@@ -2518,7 +2518,7 @@ class Game {
         if (npc.type === 'vendor') {
             // Otwórz sklep
             setTimeout(() => {
-                const eqPanel = document.getElementById('equipmentWindow');
+                const eqPanel = document.getElementById('equipmentPanel');
                 if (eqPanel) {
                     // Przejdź na tab sklepu
                     document.querySelectorAll('.equipment-tab').forEach(tab => tab.classList.remove('active'));
