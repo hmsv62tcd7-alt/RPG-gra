@@ -6653,6 +6653,7 @@ class Game {
         console.log('[Multiplayer] initMultiplayer called!');
         console.log('[Multiplayer] database:', database);
         console.log('[Multiplayer] this.player:', this.player);
+        console.log('[AUTH] currentUser.uid:', currentUser?.uid);
         console.log('[Multiplayer] Initializing with user:', currentUser?.uid);
 
         // Ustaw bezpieczną mapę startową
@@ -6666,11 +6667,14 @@ class Game {
         // Ustaw listener dla innych graczy (priorytet: mapa -> playersOnline -> fallback users)
         try {
             const TIMEOUT = 30000; // 30 sekund timeout dla offline graczy
+            const myUid = currentUser?.uid;
+            console.log('[AUTH] Captured myUid at initMultiplayer:', myUid);
 
             const processPlayersSnapshot = (usersData, sourceLabel) => {
                 const now = Date.now();
                 console.log(`[SNAPSHOT] ${sourceLabel}:`, usersData);
                 console.log(`[SNAPSHOT] ${sourceLabel} keys:`, usersData ? Object.keys(usersData) : 'null');
+                console.log(`[SNAPSHOT] myUid=${myUid}, currentUser.uid=${currentUser?.uid}`);
 
                 const hasAny = usersData && Object.keys(usersData).length > 0;
                 if (!hasAny) {
@@ -6683,8 +6687,8 @@ class Game {
                 // Usuń graczy którzy się rozłączyli lub są offline
                 for (let uid in this.otherPlayers) {
                     const p = usersData[uid];
-                    if (!p || uid === currentUser.uid) {
-                        console.log(`[SNAPSHOT] Removing ${uid} from otherPlayers (no data or self)`);
+                    if (!p || uid === myUid) {
+                        console.log(`[SNAPSHOT] Removing ${uid} from otherPlayers (no data or self, myUid=${myUid})`);
                         delete this.otherPlayers[uid];
                     } else if (p.timestamp && now - p.timestamp > TIMEOUT) {
                         console.log(`[SNAPSHOT] Removing ${uid} - offline (${now - p.timestamp}ms old)`);
@@ -6694,12 +6698,12 @@ class Game {
 
                 // Zaktualizuj pozostałych graczy
                 for (let uid in usersData) {
-                    if (uid === currentUser.uid) {
-                        console.log(`[SNAPSHOT] Skipping self: ${uid}`);
+                    if (uid === myUid) {
+                        console.log(`[SNAPSHOT] Skipping self (uid=${uid}, myUid=${myUid})`);
                         continue;
                     }
                     const p = usersData[uid];
-                    console.log(`[SNAPSHOT] Checking uid=${uid}, data:`, p);
+                    console.log(`[SNAPSHOT] Checking uid=${uid}, myUid=${myUid}, match=${uid === myUid}, data:`, p);
                     
                     if (!p) {
                         console.log(`[SNAPSHOT] Skipping ${uid} - p is null`);
