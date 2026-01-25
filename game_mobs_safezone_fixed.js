@@ -6709,6 +6709,7 @@ class Game {
                         console.log(`[SNAPSHOT] Skipping ${uid} - p is not object (${typeof p})`);
                         continue;
                     }
+                    // FIX: Use Number.isFinite to allow x=0 or y=0 positions
                     if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
                         console.log(`[SNAPSHOT] Skipping ${uid} - invalid x/y: ${p.x}/${p.y}`);
                         continue;
@@ -7552,16 +7553,19 @@ class Game {
 
     drawOtherPlayers() {
         const count = Object.keys(this.otherPlayers).length;
-        console.log('[Multiplayer] Drawing other players, count:', count, this.otherPlayers);
+        if (count > 0) console.log('[DRAW] Drawing other players, count:', count, 'currentMap:', this.currentMap, this.otherPlayers);
         for (let id in this.otherPlayers) {
             const other = this.otherPlayers[id];
-            if (!other) continue;
-            if (!Number.isFinite(other.currentMap)) other.currentMap = 1;
-            if (other.currentMap !== this.currentMap) {
-                console.log('[Multiplayer] Player', id, 'is on different map:', other.currentMap, 'vs', this.currentMap);
+            if (!other) {
+                console.log('[DRAW] Skipping', id, '- null');
                 continue;
             }
-            console.log('[Multiplayer] Drawing player:', id, 'at', other.x, other.y);
+            if (!Number.isFinite(other.currentMap)) other.currentMap = 1;
+            if (other.currentMap !== this.currentMap) {
+                console.log('[DRAW] Skipping', id, `- different map: ${other.currentMap} vs ${this.currentMap}`);
+                continue;
+            }
+            console.log('[DRAW] ✓ Drawing player:', id, 'at', other.x, other.y);
             const centerX = other.x + this.player.width / 2;
             const centerY = other.y + this.player.height / 2;
             // Highlight selection

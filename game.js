@@ -7243,7 +7243,8 @@ class Game {
                 for (let uid in usersData) {
                     if (uid === currentUser.uid) continue;
                     const p = usersData[uid];
-                    if (!p || !p.x || !p.y) continue;
+                    // FIX: Use Number.isFinite to allow x=0 or y=0 positions
+                    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
                     if (p.timestamp && (now - p.timestamp) > TIMEOUT) {
                         console.log('[Multiplayer] Player offline (stale timestamp):', uid);
                         continue;
