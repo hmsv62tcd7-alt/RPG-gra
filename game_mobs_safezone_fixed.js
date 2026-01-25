@@ -6663,7 +6663,7 @@ class Game {
             this.currentMap = (this.player && Number.isFinite(this.player.currentMap)) ? this.player.currentMap : 1;
         }
         
-        // Ustaw listener dla innych graczy (publiczny kanał playersOnline, fallback na users)
+        // Ustaw listener dla innych graczy (priorytet: mapa -> playersOnline -> fallback users)
         try {
             const TIMEOUT = 30000; // 30 sekund timeout dla offline graczy
 
@@ -6698,6 +6698,13 @@ class Game {
                     console.log('[Multiplayer] Updated player:', uid, p);
                 }
             };
+
+            // Listener per-map (gameState/mapX/players) — najwyższy priorytet, bo mapy już czytasz dla enemies
+            database.ref('gameState/map' + this.currentMap + '/players').on('value', (snapshot) => {
+                processPlayersSnapshot(snapshot.val() || {}, 'mapPlayers');
+            }, (error) => {
+                console.error('[Multiplayer] Firebase error (mapPlayers):', error);
+            });
 
             // Główny kanał playersOnline
             database.ref('playersOnline').on('value', (snapshot) => {
@@ -6782,6 +6789,12 @@ class Game {
         // Zapisz w publicznym kanale playersOnline (widoczne dla innych)
         database.ref('playersOnline/' + currentUser.uid + '/data').set(playerData).catch((error) => {
             console.error('[Multiplayer] Sync error (playersOnline):', error);
+        });
+
+        // Zapisz również per-map (gameState/mapX/players) — to samo miejsce co wrogowie
+        const mapPath = 'gameState/map' + this.currentMap + '/players/' + currentUser.uid + '/data';
+        database.ref(mapPath).set(playerData).catch((error) => {
+            console.error('[Multiplayer] Sync error (map players):', error);
         });
         
         // Synchronizuj stan wrogów (serwerowy)
@@ -7750,6 +7763,9 @@ function handleLogout() {
         database.ref('playersOnline/' + currentUser.uid).remove().then(() => {
             console.log('[Auth] Player removed from playersOnline');
         });
+        database.ref('gameState/map1/players/' + currentUser.uid).remove();
+        database.ref('gameState/map2/players/' + currentUser.uid).remove();
+        database.ref('gameState/map3/players/' + currentUser.uid).remove();
     }
     
     auth.signOut().then(() => {
