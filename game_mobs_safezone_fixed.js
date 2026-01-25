@@ -6663,43 +6663,54 @@ class Game {
             this.currentMap = (this.player && Number.isFinite(this.player.currentMap)) ? this.player.currentMap : 1;
         }
         
-        // Ustaw listener dla innych graczy (publiczny kanał playersOnline)
+        // Ustaw listener dla innych graczy (publiczny kanał playersOnline, fallback na users)
         try {
-            database.ref('playersOnline').on('value', (snapshot) => {
-                const usersData = snapshot.val() || {};
+            const TIMEOUT = 30000; // 30 sekund timeout dla offline graczy
+
+            const processPlayersSnapshot = (usersData, sourceLabel) => {
                 const now = Date.now();
-                const TIMEOUT = 30000; // 30 sekund timeout dla offline graczy
-                console.log('[Multiplayer] Received playersOnline:', usersData);
-                
+                console.log(`[Multiplayer] Received ${sourceLabel}:`, usersData);
+
                 // Usuń graczy którzy się rozłączyli lub są offline
                 for (let uid in this.otherPlayers) {
-                    if (!usersData[uid] || uid === currentUser.uid) {
+                    const entry = usersData[uid];
+                    const stamp = entry?.data?.timestamp || entry?.player?.timestamp;
+                    if (!entry || uid === currentUser.uid) {
                         delete this.otherPlayers[uid];
-                    } else if (usersData[uid].data && usersData[uid].data.timestamp) {
-                        // Sprawdź czy gracz jest online (timestamp nie starszy niż TIMEOUT)
-                        if (now - usersData[uid].data.timestamp > TIMEOUT) {
-                            delete this.otherPlayers[uid];
-                            console.log('[Multiplayer] Removed offline player:', uid);
-                        }
+                    } else if (stamp && now - stamp > TIMEOUT) {
+                        delete this.otherPlayers[uid];
+                        console.log('[Multiplayer] Removed offline player:', uid);
                     }
                 }
-                
+
                 // Zaktualizuj pozostałych graczy
                 for (let uid in usersData) {
-                    if (uid !== currentUser.uid && usersData[uid].data) {
-                        const p = usersData[uid].data;
-                        // Sprawdź czy gracz jest online
-                        if (p.timestamp && (now - p.timestamp) > TIMEOUT) {
-                            console.log('[Multiplayer] Player offline (stale timestamp):', uid);
-                            continue;
-                        }
-                        if (!Number.isFinite(p.currentMap)) p.currentMap = 1;
-                        this.otherPlayers[uid] = p;
-                        console.log('[Multiplayer] Updated player:', uid, p);
+                    if (uid === currentUser.uid) continue;
+                    const entry = usersData[uid];
+                    const p = entry?.data || entry?.player;
+                    if (!p) continue;
+                    if (p.timestamp && (now - p.timestamp) > TIMEOUT) {
+                        console.log('[Multiplayer] Player offline (stale timestamp):', uid);
+                        continue;
                     }
+                    if (!Number.isFinite(p.currentMap)) p.currentMap = 1;
+                    this.otherPlayers[uid] = p;
+                    console.log('[Multiplayer] Updated player:', uid, p);
                 }
+            };
+
+            // Główny kanał playersOnline
+            database.ref('playersOnline').on('value', (snapshot) => {
+                processPlayersSnapshot(snapshot.val() || {}, 'playersOnline');
             }, (error) => {
-                console.error('[Multiplayer] Firebase error:', error);
+                console.error('[Multiplayer] Firebase error (playersOnline):', error);
+            });
+
+            // Fallback na users/player (jeśli playersOnline puste lub brak uprawnień)
+            database.ref('users').on('value', (snapshot) => {
+                processPlayersSnapshot(snapshot.val() || {}, 'users');
+            }, (error) => {
+                console.error('[Multiplayer] Firebase error (users fallback):', error);
             });
 
             // Listener dla stanu wrogów (serwerowych)
