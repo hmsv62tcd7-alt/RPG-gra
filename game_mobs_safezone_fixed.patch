@@ -1,0 +1,31 @@
+--- game_mobs_fixed.js
++++ game_mobs_fixed.js
+@@ -986,6 +986,17 @@
+ }
+ 
+     update(playerX, playerY) {
++        // NO ENTRY: mob nie może wejść do wioski
++        const gm = (typeof window !== 'undefined') ? window.gameManager : null;
++        if (gm && gm.villageSafeRect && gm.isPointInRect) {
++            const cx = this.x + this.width / 2;
++            const cy = this.y + this.height / 2;
++            if (gm.isPointInRect(cx, cy, gm.villageSafeRect)) {
++                const p = gm.projectOutsideRect(this.x, this.y, gm.villageSafeRect, 140);
++                this.x = p.x; this.y = p.y;
++                this.isAggro = false;
++            }
++        }
+         // Sprawdzenie czy gracz jest w zasięgu
+         const dx = this.x - playerX;
+         const dy = this.y - playerY;
+@@ -2453,6 +2464,10 @@
+ 
+         // Budynki wioski (blokady + teleport do wnętrza żółtego domu)
+         this.villageBuildings = this.createVillageBuildings();
++
++        // Twarda strefa bezpieczeństwa wioski (NO SPAWN / NO ENTRY)
++        this.villageSafeRect = this.computeVillageSafeRect(180);
++
+ 
+         // Konfiguracja małej mapy wnętrza
+         this.interiorMapSize = { width: 900, height: 600 };
